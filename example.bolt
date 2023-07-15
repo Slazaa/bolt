@@ -1,0 +1,10 @@
+struct Node {
+    value: I32,
+    children: [Node]
+}
+
+fn eval_node(op: (I32, I32) -> I32, node: Node) -> I32 {
+    node.children
+        ~ map (\n -> eval_node n)
+        ~ foldl op node.value
+}
