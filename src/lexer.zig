@@ -1,55 +1,72 @@
 const std = @import("std");
 
+const fs = std.fs;
 const mem = std.mem;
 
 const ParserResult = @import("parser.zig").Result;
-
-const alt = @import("parser.zig").alt;
-const into = @import("parser.zig").into;
+const Parser = @import("parser.zig").Parser;
 
 pub const Keyword = @import("lexer/Keyword.zig");
+pub const Literal = @import("lexer/Literal.zig");
+
+pub const FormatError = error{
+    CouldNotFormat,
+};
 
 pub const Token = union(enum) {
     const Self = @This();
 
     keyword: Keyword,
+    literal: Literal,
 
-    pub fn from(token: anytype) Self {
-        const TokenT = @TypeOf(token);
+    pub fn from(item: anytype) Self {
+        const T = @TypeOf(item);
 
-        return switch (TokenT) {
-            Keyword => .{ .keyword = token },
-            else => @compileError("Expected token, found" ++ @typeName(TokenT)),
+        return switch (T) {
+            Keyword => .{ .keyword = item },
+            Literal => .{ .literal = item },
+            else => @compileError("Expected token, found" ++ @typeName(T)),
         };
+    }
+
+    pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
+        switch (self) {
+            .keyword => |x| try x.format(writer),
+            .literal => |x| try x.format(writer),
+        }
     }
 };
 
 const whitespaces = " \t\n\r";
 
-pub fn lex(input: []const u8, tokens: std.ArrayList(Token)) ParserResult(void) {
+pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
     var input_ = input;
 
     while (input_.len != 0) {
-        if (mem.containsAtLeast(u8, whitespaces, 1, input_[0])) {
+        if (mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
             input_ = input_[1..];
             continue;
         }
 
-        const res = switch (alt(
-            Token,
-            &[_]*const fn (input: []const u8) ParserResult(Token){
-                into(Keyword, Token, Keyword.lex, Token.from),
-            },
-        )(input)) {
-            .ok => |x| x,
-            .err => |e| return .{ .err = e },
+        const parsers = .{
+            Keyword.lex,
+            Literal.lex,
+        };
+
+        const res = b: inline for (parsers) |parser| {
+            switch (parser(input_)) {
+                .ok => |x| break :b .{ x[0], Token.from(x[1]) },
+                .err => {},
+            }
+        } else {
+            return .{ .err = .invalid_input };
         };
 
         input_ = res[0];
         const token = res[1];
 
-        tokens.append(token) catch @panic("Could not append to tokens");
+        tokens.append(token) catch @panic("Could not append token");
     }
 
-    return .{ .ok = .{ &[_]u8{}, void{} } };
+    return .{ .ok = .{ void{}, void{} } };
 }

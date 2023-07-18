@@ -5,7 +5,14 @@ const io = std.io;
 const mem = std.mem;
 
 const expr = @import("../expr.zig");
+const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
+
+const FormatError = expr.FormatError;
+
+const Token = lexer.Token;
+
+const ParserResult = parser.Result;
 
 const Expr = @import("../expr.zig").Expr;
 
@@ -23,27 +30,27 @@ pub fn deinit(self: *Self) void {
     self.exprs.deinit();
 }
 
-pub fn parse(allocator: mem.Allocator, input: []const u8) parser.Result(Self) {
+pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
     var self = Self.init(allocator);
-    var new_input = input;
+    var input_ = input;
 
-    while (new_input.len != 0) {
-        const res = switch (Expr.parse(allocator, new_input)) {
+    while (input_.len != 0) {
+        const res = switch (Expr.parse(allocator, input_)) {
             .ok => |x| x,
             .err => |e| return .{ .err = e },
         };
 
-        new_input = res[0];
+        input_ = res[0];
 
         self.exprs.append(res[1]) catch {
             @panic("Could not append to File");
         };
     }
 
-    return .{ .ok = .{ &[_]u8{}, self } };
+    return .{ .ok = .{ &[_]Token{}, self } };
 }
 
-pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) expr.FormatError!void {
+pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
     var depth_tabs = std.ArrayList(u8).init(allocator);
     defer depth_tabs.deinit();
 

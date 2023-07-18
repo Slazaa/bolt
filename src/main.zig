@@ -5,6 +5,7 @@ const heap = std.heap;
 const io = std.io;
 
 const expr = @import("expr.zig");
+const lexer = @import("lexer.zig");
 
 pub fn main() !void {
     const input =
@@ -16,15 +17,27 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    var ast = switch (expr.File.parse(allocator, input)) {
-        .ok => |x| x[1],
-        .err => return error.ASTError,
-    };
+    var tokens = std.ArrayList(lexer.Token).init(allocator);
+    defer tokens.deinit();
 
-    defer ast.deinit();
+    switch (lexer.lex(input, &tokens)) {
+        .ok => {},
+        .err => return error.LexerError,
+    }
 
     const stdout = io.getStdOut();
     const stdout_writer = stdout.writer();
 
-    try ast.format(allocator, stdout_writer, 0);
+    for (tokens.items) |token| {
+        try token.format(stdout_writer);
+    }
+
+    // var ast = switch (expr.File.parse(allocator, tokens.items)) {
+    //     .ok => |x| x[1],
+    //     .err => return error.ASTError,
+    // };
+
+    // defer ast.deinit();
+
+    // try ast.format(allocator, stdout_writer, 0);
 }
