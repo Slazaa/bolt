@@ -7,8 +7,6 @@ const mem = std.mem;
 const expr = @import("../expr.zig");
 const parser = @import("../parser.zig");
 
-const Result = parser.Result;
-
 const Expr = @import("../expr.zig").Expr;
 
 const Self = @This();
@@ -25,7 +23,7 @@ pub fn deinit(self: *Self) void {
     self.exprs.deinit();
 }
 
-pub fn parse(allocator: mem.Allocator, input: []const u8) Result(Self) {
+pub fn parse(allocator: mem.Allocator, input: []const u8) parser.Result(Self) {
     var self = Self.init(allocator);
     var new_input = input;
 

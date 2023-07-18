@@ -5,6 +5,8 @@ const mem = std.mem;
 pub const alt = @import("parser/alt.zig").alt;
 pub const digit0 = @import("parser/digit.zig").digit0;
 pub const digit1 = @import("parser/digit.zig").digit1;
+pub const into = @import("parser/into.zig").into;
+pub const tag = @import("parser/tag.zig").tag;
 
 pub const Error = enum {
     invalid_input,

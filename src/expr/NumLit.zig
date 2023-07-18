@@ -8,21 +8,24 @@ const mem = std.mem;
 const expr = @import("../expr.zig");
 const parser = @import("../parser.zig");
 
-const Result = parser.Result;
-
 const digit1 = parser.digit1;
 
 const Self = @This();
 
 value: []const u8,
 
-pub fn parse(input: []const u8) Result(Self) {
-    const res = switch (digit1(input)) {
+pub fn parse(input: []const u8) parser.Result(Self) {
+    var input_ = input;
+
+    const res = switch (digit1(input_)) {
         .ok => |x| x,
         .err => |e| return .{ .err = e },
     };
 
-    return .{ .ok = .{ res[0], Self{ .value = res[1] } } };
+    input_ = res[0];
+    const value = res[1];
+
+    return .{ .ok = .{ input_, Self{ .value = value } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) expr.FormatError!void {
