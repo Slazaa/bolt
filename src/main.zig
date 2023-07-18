@@ -1,16 +1,17 @@
 const std = @import("std");
 
+const debug = std.debug;
 const heap = std.heap;
-const testing = std.testing;
+const io = std.io;
 
 const expr = @import("expr.zig");
 
-test "parse test" {
+pub fn main() !void {
     const input =
         \\51
     ;
 
-    var arena = heap.ArenaAllocator.init(testing.allocator);
+    var arena = heap.ArenaAllocator.init(heap.page_allocator);
     defer arena.deinit();
 
     const allocator = arena.allocator();
@@ -21,4 +22,9 @@ test "parse test" {
     };
 
     defer ast.deinit();
+
+    const stdout = io.getStdOut();
+    const stdout_writer = stdout.writer();
+
+    try ast.format(allocator, stdout_writer, 0);
 }

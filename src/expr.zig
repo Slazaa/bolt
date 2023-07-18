@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const fs = std.fs;
+const io = std.io;
 const mem = std.mem;
 
 const Result = @import("parser.zig").Result;
@@ -8,6 +10,10 @@ const alt = @import("parser.zig").alt;
 
 pub const File = @import("expr/File.zig");
 pub const NumLit = @import("expr/NumLit.zig");
+
+pub const FormatError = error{
+    CouldNotFormat,
+};
 
 pub const Expr = union(enum) {
     const Self = @This();
@@ -27,7 +33,7 @@ pub const Expr = union(enum) {
 
     pub fn deinit(self: *Self) void {
         switch (self) {
-            .File => |file| file.deinit(),
+            .file => |file| file.deinit(),
         }
     }
 
@@ -53,5 +59,12 @@ pub const Expr = union(enum) {
                 Self.toExpr(NumLit, NumLit.parse),
             },
         )(input);
+    }
+
+    pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
+        switch (self) {
+            .file => |file| try file.format(allocator, writer, depth),
+            .num_lit => |num_lit| try num_lit.format(allocator, writer, depth),
+        }
     }
 };
