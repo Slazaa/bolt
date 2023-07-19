@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const ascii = std.ascii;
 const fs = std.fs;
 const heap = std.heap;
 const io = std.io;
@@ -17,35 +18,29 @@ const Literal = lexer.Literal;
 
 const ParserResult = parser.Result;
 
-const digit1 = parser.digit1;
-
 const Self = @This();
 
 value: []const u8,
 
-pub fn parse(input: []const Token) ParserResult([]const Token, Self) {
-    var input_ = input;
+pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+    _ = allocator;
 
-    if (input_.len == 0) {
+    if (input.len == 0) {
         return .{ .err = .invalid_input };
     }
 
-    const literal = switch (input_[0]) {
+    const literal = switch (input[0]) {
         .literal => |x| x,
         else => return .{ .err = .invalid_input },
     };
 
-    const res = switch (digit1(literal.value)) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = e },
-    };
+    for (literal.value) |c| {
+        if (!ascii.isDigit(c)) {
+            return .{ .err = .invalid_input };
+        }
+    }
 
-    input_ = res[0];
-    const value = res[1];
-
-    return .{ .ok = .{ input_, Self{
-        .value = value,
-    } } };
+    return .{ .ok = .{ input[1..], Self{ .value = literal.value } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {

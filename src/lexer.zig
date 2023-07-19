@@ -6,6 +6,7 @@ const mem = std.mem;
 const ParserResult = @import("parser.zig").Result;
 const Parser = @import("parser.zig").Parser;
 
+pub const Ident = @import("lexer/Ident.zig");
 pub const Keyword = @import("lexer/Keyword.zig");
 pub const Literal = @import("lexer/Literal.zig");
 
@@ -16,6 +17,7 @@ pub const FormatError = error{
 pub const Token = union(enum) {
     const Self = @This();
 
+    ident: Ident,
     keyword: Keyword,
     literal: Literal,
 
@@ -23,6 +25,7 @@ pub const Token = union(enum) {
         const T = @TypeOf(item);
 
         return switch (T) {
+            Ident => .{ .ident = item },
             Keyword => .{ .keyword = item },
             Literal => .{ .literal = item },
             else => @compileError("Expected token, found" ++ @typeName(T)),
@@ -31,6 +34,7 @@ pub const Token = union(enum) {
 
     pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
         switch (self) {
+            .ident => |x| try x.format(writer),
             .keyword => |x| try x.format(writer),
             .literal => |x| try x.format(writer),
         }
@@ -39,14 +43,34 @@ pub const Token = union(enum) {
 
 const whitespaces = " \t\n\r";
 
+pub fn lexSkip(input: []const u8) []const u8 {
+    var input_ = input;
+
+    while (input_.len != 0) {
+        if (mem.startsWith(u8, input_, "#")) {
+            while (true) {
+                const should_break = input_[0] == '\n';
+                input_ = input_[1..];
+
+                if (should_break) break;
+            }
+        }
+
+        if (!mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
+            break;
+        }
+
+        input_ = input_[1..];
+    }
+
+    return input_;
+}
+
 pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
     var input_ = input;
 
     while (input_.len != 0) {
-        if (mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
-            input_ = input_[1..];
-            continue;
-        }
+        input_ = lexSkip(input_);
 
         const parsers = .{
             Keyword.lex,

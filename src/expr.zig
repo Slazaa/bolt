@@ -7,9 +7,6 @@ const mem = std.mem;
 const ParserResult = @import("parser.zig").Result;
 const Parser = @import("parser.zig").Parser;
 
-const alt = @import("parser.zig").alt;
-const into = @import("parser.zig").into;
-
 const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
@@ -27,16 +24,14 @@ pub const Expr = union(enum) {
     file: File,
     num_lit: NumLit,
 
-    pub fn from(comptime T: type) Parser(T, Self) {
-        return struct {
-            pub fn f(input: T) Self {
-                return switch (T) {
-                    File => .{ .file = input },
-                    NumLit => .{ .num_lit = input },
-                    else => @compileError("Expected Expr, found" ++ @typeName(T)),
-                };
-            }
-        }.f;
+    pub fn from(item: anytype) Self {
+        const T = @TypeOf(item);
+
+        return switch (T) {
+            File => .{ .file = item },
+            NumLit => .{ .num_lit = item },
+            else => @compileError("Expected Expr, found" ++ @typeName(T)),
+        };
     }
 
     pub fn deinit(self: *Self) void {
@@ -46,14 +41,25 @@ pub const Expr = union(enum) {
     }
 
     pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
-        _ = allocator;
+        var input_ = input;
 
-        return alt(
-            Self,
-            &[_]*const fn (input: []const Token) ParserResult([]const Token, Self){
-                into(NumLit, Self, NumLit.parse, Self.from(NumLit)),
-            },
-        )(input);
+        const parsers = .{
+            NumLit.parse,
+        };
+
+        const res = b: inline for (parsers) |parser| {
+            switch (parser(allocator, input_)) {
+                .ok => |x| break :b .{ x[0], Expr.from(x[1]) },
+                .err => {},
+            }
+        } else {
+            return .{ .err = .invalid_input };
+        };
+
+        input_ = res[0];
+        const expr = res[1];
+
+        return .{ .ok = .{ input_, expr } };
     }
 
     pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
