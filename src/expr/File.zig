@@ -50,21 +50,16 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     return .{ .ok = .{ &[_]Token{}, self } };
 }
 
-pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
-    var depth_tabs = std.ArrayList(u8).init(allocator);
-    defer depth_tabs.deinit();
+pub fn format(self: Self, writer: fs.File.Writer, comptime depth: usize) FormatError!void {
+    const depth_tabs = "    " ** depth;
 
-    for (0..depth) |_| {
-        depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
-    }
-
-    writer.print("{s}File {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    exprs: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}File {{\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    writer.print("{s}    exprs: [\n", .{depth_tabs}) catch return error.CouldNotFormat;
 
     for (self.exprs.items) |item| {
-        try item.format(allocator, writer, depth + 2);
+        try item.format(writer, depth + 2);
     }
 
-    writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    ]\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    writer.print("{s}}}\n", .{depth_tabs}) catch return error.CouldNotFormat;
 }

@@ -1,19 +1,97 @@
 const std = @import("std");
 
+const fs = std.fs;
 const mem = std.mem;
 
 const expr = @import("../expr.zig");
+const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
 
+const FormatError = expr.FormatError;
+
 const Expr = expr.Expr;
+const Ident = expr.Ident;
+
+const Token = lexer.Token;
+
+const ParserResult = parser.Result;
 
 const Self = @This();
 
-ident: []const u8,
-mutable: bool,
-expr: ?Expr,
+allocator: mem.Allocator,
+ident: Ident,
+mut: bool,
+expr: ?*Expr,
 
-pub fn parse(allocator: mem.Allocator, input: []const u8) parser.Result(Self) {
-    _ = input;
-    _ = allocator;
+pub fn deinit(self: *Self) void {
+    if (self.expr) |e| {
+        self.allocator.destroy(e);
+    }
+}
+
+pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+    var input_ = input;
+
+    if (input_.len < 3) {
+        return .{ .err = .invalid_input };
+    }
+
+    switch (input_[0]) {
+        .keyword => |x| if (!mem.eql(u8, x.value, "let")) return .{ .err = .invalid_input },
+        else => {},
+    }
+
+    input_ = input_[1..];
+
+    const mut = b: {
+        switch (input_[0]) {
+            .keyword => |x| {
+                if (!mem.eql(u8, x.value, "mut")) return .{ .err = .invalid_input };
+                break :b true;
+            },
+            else => break :b false,
+        }
+    };
+
+    if (mut) {
+        input_ = input_[1..];
+    }
+
+    const res = switch (Ident.parse(allocator, input_)) {
+        .ok => |x| x,
+        .err => |e| return .{ .err = e },
+    };
+
+    input_ = res[0];
+    const ident = res[1];
+
+    switch (input[0]) {
+        .punct => |x| if (!mem.eql(u8, x.value, ";")) return .{ .err = .invalid_input },
+        else => {},
+    }
+
+    input_ = input_[1..];
+
+    return .{ .ok = .{ input, Self{
+        .allocator = allocator,
+        .ident = ident,
+        .mut = mut,
+        .expr = null,
+    } } };
+}
+
+pub fn format(self: Self, writer: fs.File.Writer, depth: usize) FormatError!void {
+    const depth_tabs = "    " ** depth;
+
+    writer.print("{s}VarDecl {{\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    writer.print("{s}    ident:\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    writer.print("{s}\n", .{self.ident.format(writer, depth + 2)}) catch return error.CouldNotFormat;
+    writer.print("{s}    mut: {}\n", .{ depth_tabs, self.mut }) catch return error.CouldNotFormat;
+
+    if (self.expr) |e| {
+        writer.print("{s}    expr:\n", .{depth_tabs}) catch return error.CouldNotFormat;
+        writer.print("{s}\n", .{e.format(writer, depth + 2)}) catch return error.CouldNotFormat;
+    }
+
+    writer.print("{s}}}\n", .{depth_tabs}) catch return error.CouldNotFormat;
 }

@@ -7,10 +7,11 @@ const io = std.io;
 const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
+const Token = lexer.Token;
+
 pub fn main() !void {
     const input =
-        \\# This is a comment
-        \\let x = 54;
+        \\1
     ;
 
     const stdout = io.getStdOut();
@@ -24,7 +25,7 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    var tokens = std.ArrayList(lexer.Token).init(allocator);
+    var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
     switch (lexer.lex(input, &tokens)) {
@@ -38,14 +39,13 @@ pub fn main() !void {
         try token.format(stdout_writer);
     }
 
-    // try stdout_writer.writeAll("\n--- AST ---\n");
+    var ast = switch (expr.File.parse(allocator, tokens.items)) {
+        .ok => |x| x[1],
+        .err => return error.ASTError,
+    };
 
-    // var ast = switch (expr.File.parse(allocator, tokens.items)) {
-    //     .ok => |x| x[1],
-    //     .err => return error.ASTError,
-    // };
+    defer ast.deinit();
 
-    // defer ast.deinit();
-
-    // try ast.format(allocator, stdout_writer, 0);
+    try stdout_writer.writeAll("\n--- AST ---\n");
+    try ast.format(stdout_writer, 0);
 }

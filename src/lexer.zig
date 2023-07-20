@@ -9,7 +9,7 @@ const Parser = @import("parser.zig").Parser;
 pub const Ident = @import("lexer/Ident.zig");
 pub const Keyword = @import("lexer/Keyword.zig");
 pub const Literal = @import("lexer/Literal.zig");
-pub const Punct = @import("lexer/Punc.zig");
+pub const Punct = @import("lexer/Punct.zig");
 
 pub const FormatError = error{
     CouldNotFormat,
