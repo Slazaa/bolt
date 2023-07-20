@@ -9,7 +9,8 @@ const lexer = @import("lexer.zig");
 
 pub fn main() !void {
     const input =
-        \\51 12 let 63 x
+        \\# This is a comment
+        \\let x = 54;
     ;
 
     const stdout = io.getStdOut();

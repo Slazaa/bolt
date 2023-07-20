@@ -9,6 +9,7 @@ const Parser = @import("parser.zig").Parser;
 pub const Ident = @import("lexer/Ident.zig");
 pub const Keyword = @import("lexer/Keyword.zig");
 pub const Literal = @import("lexer/Literal.zig");
+pub const Punct = @import("lexer/Punc.zig");
 
 pub const FormatError = error{
     CouldNotFormat,
@@ -20,6 +21,7 @@ pub const Token = union(enum) {
     ident: Ident,
     keyword: Keyword,
     literal: Literal,
+    punct: Punct,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
@@ -28,6 +30,7 @@ pub const Token = union(enum) {
             Ident => .{ .ident = item },
             Keyword => .{ .keyword = item },
             Literal => .{ .literal = item },
+            Punct => .{ .punct = item },
             else => @compileError("Expected token, found" ++ @typeName(T)),
         };
     }
@@ -37,6 +40,7 @@ pub const Token = union(enum) {
             .ident => |x| try x.format(writer),
             .keyword => |x| try x.format(writer),
             .literal => |x| try x.format(writer),
+            .punct => |x| try x.format(writer),
         }
     }
 };
@@ -75,6 +79,8 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, 
         const parsers = .{
             Keyword.lex,
             Literal.lex,
+            Ident.lex,
+            Punct.lex,
         };
 
         const res = b: inline for (parsers) |parser| {

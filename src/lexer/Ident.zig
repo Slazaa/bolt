@@ -17,7 +17,7 @@ value: []const u8,
 pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
     var input_ = input;
 
-    if (!ascii.isAlphabetic(input_[0]) or input_[0] != '_') {
+    if (input_.len == 0 or (!ascii.isAlphabetic(input_[0]) and input_[0] != '_')) {
         return .{ .err = .invalid_input };
     }
 

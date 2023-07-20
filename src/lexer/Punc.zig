@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const ascii = std.ascii;
 const fs = std.fs;
 const mem = std.mem;
 
@@ -13,16 +12,17 @@ const ParserResult = parser.Result;
 
 const Self = @This();
 
-const keywords = [_][]const u8{
-    "let",
+const puctuations = [_][]const u8{
+    "+", "-", "*", "/", "%",
+    "=", ";",
 };
 
 value: []const u8,
 
 pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
-    for (keywords) |keyword| {
-        if (mem.startsWith(u8, input, keyword) and (input.len == keyword.len or !ascii.isAlphanumeric(input[keyword.len]))) {
-            return .{ .ok = .{ input[keyword.len..], Self{ .value = input[0..keyword.len] } } };
+    for (puctuations) |punct| {
+        if (mem.startsWith(u8, input, punct)) {
+            return .{ .ok = .{ input[punct.len..], Self{ .value = input[0..punct.len] } } };
         }
     }
 
@@ -30,5 +30,5 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
-    writer.print("Keyword | {s}\n", .{self.value}) catch return error.CouldNotFormat;
+    writer.print("Punct   | {s}\n", .{self.value}) catch return error.CouldNotFormat;
 }
