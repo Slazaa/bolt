@@ -34,7 +34,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
     input_ = input_[1..];
 
-    return .{ .ok = .{ input, Self{ .value = value } } };
+    return .{ .ok = .{ input_, Self{ .value = value } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {

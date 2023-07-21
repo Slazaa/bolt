@@ -11,7 +11,7 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\x
+        \\let x;
     ;
 
     const stdout = io.getStdOut();

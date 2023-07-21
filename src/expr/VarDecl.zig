@@ -72,7 +72,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
     input_ = input_[1..];
 
-    return .{ .ok = .{ input, Self{
+    return .{ .ok = .{ input_, Self{
         .allocator = allocator,
         .ident = ident,
         .mut = mut,
@@ -96,6 +96,8 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     if (self.expr) |e| {
         writer.print("{s}    expr:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
         try e.format(allocator, writer, depth + 2);
+    } else {
+        writer.print("{s}    expr: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     }
 
     writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
