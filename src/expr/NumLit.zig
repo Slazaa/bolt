@@ -18,12 +18,12 @@ const ParserResult = parser.Result;
 
 const Self = @This();
 
-value: []const u8,
+value: Literal,
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
     _ = allocator;
 
-    if (input.len == 0) {
+    if (input.len < 1) {
         return .{ .err = .invalid_input };
     }
 
@@ -38,7 +38,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         }
     }
 
-    return .{ .ok = .{ input[1..], Self{ .value = literal.value } } };
+    return .{ .ok = .{ input[1..], Self{ .value = literal } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
@@ -50,6 +50,6 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     }
 
     writer.print("{s}NumLit {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    value: {s}\n", .{ depth_tabs.items, self.value }) catch return error.CouldNotFormat;
+    writer.print("{s}    value: {s}\n", .{ depth_tabs.items, self.value.value }) catch return error.CouldNotFormat;
     writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 }

@@ -46,8 +46,6 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     }
 
     writer.print("{s}Ident {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    value: ", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    try self.value.format(writer);
-    writer.print("\n", .{}) catch return error.CouldNotFormat;
+    writer.print("{s}    value: {s}\n", .{ depth_tabs.items, self.value.value }) catch return error.CouldNotFormat;
     writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 }
