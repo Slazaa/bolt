@@ -70,12 +70,12 @@ pub const Expr = union(enum) {
         return .{ .ok = .{ input_, expr } };
     }
 
-    pub fn format(self: Self, writer: fs.File.Writer, comptime depth: usize) FormatError!void {
+    pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
         switch (self) {
-            .file => |x| try x.format(writer, depth),
-            .ident => |x| try x.format(writer, depth),
-            .num_lit => |x| try x.format(writer, depth),
-            .var_decl => |x| try x.format(writer, depth),
+            .file => |x| try x.format(allocator, writer, depth),
+            .ident => |x| try x.format(allocator, writer, depth),
+            .num_lit => |x| try x.format(allocator, writer, depth),
+            .var_decl => |x| try x.format(allocator, writer, depth),
         }
     }
 };

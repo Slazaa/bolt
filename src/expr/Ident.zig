@@ -3,15 +3,16 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
+const expr = @import("../expr.zig");
 const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
-
-const FormatError = lexer.ForamtError;
 
 const Token = lexer.Token;
 const Ident = lexer.Ident;
 
 const ParserResult = parser.Result;
+
+const FormatError = expr.FormatError;
 
 const Self = @This();
 
@@ -36,12 +37,17 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     return .{ .ok = .{ input, Self{ .value = value } } };
 }
 
-pub fn format(self: Self, writer: fs.File.Writer, depth: usize) FormatError!void {
-    const depth_tabs = "    " ** depth;
+pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
+    var depth_tabs = std.ArrayList(u8).init(allocator);
+    defer depth_tabs.deinit();
 
-    writer.print("{s}Ident {{\n", .{depth_tabs}) catch return error.CouldNotFormat;
-    writer.print("{s}    value: ", .{depth_tabs}) catch return error.CouldNotFormat;
+    for (0..depth) |_| {
+        depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
+    }
+
+    writer.print("{s}Ident {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    value: ", .{depth_tabs.items}) catch return error.CouldNotFormat;
     try self.value.format(writer);
-    writer.print("\n", .{});
-    writer.print("{s}}}\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    writer.print("\n", .{}) catch return error.CouldNotFormat;
+    writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 }

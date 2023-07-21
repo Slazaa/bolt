@@ -11,7 +11,7 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\1
+        \\x
     ;
 
     const stdout = io.getStdOut();
@@ -47,5 +47,5 @@ pub fn main() !void {
     defer ast.deinit();
 
     try stdout_writer.writeAll("\n--- AST ---\n");
-    try ast.format(stdout_writer, 0);
+    try ast.format(allocator, stdout_writer, 0);
 }

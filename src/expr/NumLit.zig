@@ -2,8 +2,6 @@ const std = @import("std");
 
 const ascii = std.ascii;
 const fs = std.fs;
-const heap = std.heap;
-const io = std.io;
 const mem = std.mem;
 
 const expr = @import("../expr.zig");
@@ -43,10 +41,15 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     return .{ .ok = .{ input[1..], Self{ .value = literal.value } } };
 }
 
-pub fn format(self: Self, writer: fs.File.Writer, comptime depth: usize) FormatError!void {
-    const depth_tabs = "    " ** depth;
+pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
+    var depth_tabs = std.ArrayList(u8).init(allocator);
+    defer depth_tabs.deinit();
 
-    writer.print("{s}NumLit {{\n", .{depth_tabs}) catch return error.CouldNotFormat;
-    writer.print("{s}    value: {s}\n", .{ depth_tabs, self.value }) catch return error.CouldNotFormat;
-    writer.print("{s}}}\n", .{depth_tabs}) catch return error.CouldNotFormat;
+    for (0..depth) |_| {
+        depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
+    }
+
+    writer.print("{s}NumLit {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    value: {s}\n", .{ depth_tabs.items, self.value }) catch return error.CouldNotFormat;
+    writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 }
