@@ -11,7 +11,8 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\let x;
+        \\let x = 10.25
+        \\let y = x
     ;
 
     const stdout = io.getStdOut();
@@ -20,10 +21,10 @@ pub fn main() !void {
     try stdout_writer.writeAll("--- Input ---\n");
     try stdout_writer.print("{s}\n", .{input});
 
-    var arena = heap.ArenaAllocator.init(heap.page_allocator);
-    defer arena.deinit();
+    var gpa = heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
 
-    const allocator = arena.allocator();
+    const allocator = gpa.allocator();
 
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
@@ -39,6 +40,8 @@ pub fn main() !void {
         try token.format(stdout_writer);
     }
 
+    try stdout_writer.writeAll("\n--- AST ---\n");
+
     var ast = switch (expr.File.parse(allocator, tokens.items)) {
         .ok => |x| x[1],
         .err => return error.ASTError,
@@ -46,6 +49,5 @@ pub fn main() !void {
 
     defer ast.deinit();
 
-    try stdout_writer.writeAll("\n--- AST ---\n");
     try ast.format(allocator, stdout_writer, 0);
 }

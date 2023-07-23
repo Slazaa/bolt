@@ -26,7 +26,11 @@ pub fn init(allocator: mem.Allocator) Self {
     };
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
+    for (self.exprs.items) |e| {
+        e.deinit();
+    }
+
     self.exprs.deinit();
 }
 

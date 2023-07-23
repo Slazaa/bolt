@@ -3,14 +3,13 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const expr = @import("../expr.zig");
 const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
 
-const FormatError = expr.FormatError;
+const FormatError = @import("../expr.zig").FormatError;
 
-const Expr = expr.Expr;
-const Ident = expr.Ident;
+const Expr = @import("../expr.zig").Expr;
+const Ident = @import("../expr.zig").Ident;
 
 const Token = lexer.Token;
 
@@ -20,21 +19,20 @@ const Self = @This();
 
 allocator: mem.Allocator,
 ident: Ident,
-mut: bool,
+params: std.ArrayList(Expr),
 expr: ?*Expr,
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
+    self.params.deinit();
+
     if (self.expr) |e| {
+        e.deinit();
         self.allocator.destroy(e);
     }
 }
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
     var input_ = input;
-
-    if (input_.len < 3) {
-        return .{ .err = .invalid_input };
-    }
 
     switch (input_[0]) {
         .keyword => |x| if (!mem.eql(u8, x.value, "let")) return .{ .err = .invalid_input },
@@ -43,40 +41,47 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
     input_ = input_[1..];
 
-    const mut = b: {
+    const ident = b: {
+        const res = switch (Ident.parse(allocator, input_)) {
+            .ok => |x| x,
+            .err => |e| return .{ .err = e },
+        };
+
+        input_ = res[0];
+
+        break :b res[1];
+    };
+
+    const expr = b: {
         switch (input_[0]) {
-            .keyword => |x| {
-                if (!mem.eql(u8, x.value, "mut")) return .{ .err = .invalid_input };
-                break :b true;
+            .punct => |x| {
+                if (!mem.eql(u8, x.value, "=")) {
+                    break :b null;
+                }
+
+                input_ = input_[1..];
             },
-            else => break :b false,
+            else => break :b null,
         }
+
+        const res = switch (Expr.parse(allocator, input_)) {
+            .ok => |x| x,
+            .err => |e| return .{ .err = e },
+        };
+
+        input_ = res[0];
+
+        const expr = allocator.create(Expr) catch return .{ .err = .invalid_input };
+        expr.* = res[1];
+
+        break :b expr;
     };
-
-    if (mut) {
-        input_ = input_[1..];
-    }
-
-    const res = switch (Ident.parse(allocator, input_)) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = e },
-    };
-
-    input_ = res[0];
-    const ident = res[1];
-
-    switch (input[0]) {
-        .punct => |x| if (!mem.eql(u8, x.value, ";")) return .{ .err = .invalid_input },
-        else => {},
-    }
-
-    input_ = input_[1..];
 
     return .{ .ok = .{ input_, Self{
         .allocator = allocator,
         .ident = ident,
-        .mut = mut,
-        .expr = null,
+        .params = std.ArrayList(Expr).init(allocator),
+        .expr = expr,
     } } };
 }
 
@@ -91,7 +96,6 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     writer.print("{s}VarDecl {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     writer.print("{s}    ident:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     try self.ident.format(allocator, writer, depth + 2);
-    writer.print("{s}    mut: {}\n", .{ depth_tabs.items, self.mut }) catch return error.CouldNotFormat;
 
     if (self.expr) |e| {
         writer.print("{s}    expr:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;

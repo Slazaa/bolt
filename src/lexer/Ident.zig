@@ -27,7 +27,9 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
         input_ = input_[1..];
     }
 
-    return .{ .ok = .{ input_, Self{ .value = input[0 .. input.len - input_.len] } } };
+    return .{ .ok = .{ input_, Self{
+        .value = input[0 .. input.len - input_.len],
+    } } };
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {

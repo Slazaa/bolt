@@ -12,9 +12,14 @@ const ParserResult = parser.Result;
 
 const Self = @This();
 
-value: []const u8,
+pub const Kind = enum {
+    num,
+};
 
-pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
+value: []const u8,
+kind: Kind,
+
+fn lexNum(input: []const u8) ParserResult([]const u8, Self) {
     var input_ = input;
 
     if (input.len == 0 or !ascii.isDigit(input_[0])) {
@@ -27,7 +32,33 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
         input_ = input_[1..];
     }
 
-    return .{ .ok = .{ input_, Self{ .value = input[0 .. input.len - input_.len] } } };
+    if (input_[0] == '.') {
+        input_ = input_[1..];
+
+        while (input_.len != 0 and ascii.isDigit(input_[0])) {
+            input_ = input_[1..];
+        }
+    }
+
+    return .{ .ok = .{ input_, Self{
+        .value = input[0 .. input.len - input_.len],
+        .kind = .num,
+    } } };
+}
+
+pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
+    const lexers = .{
+        lexNum,
+    };
+
+    inline for (lexers) |l| {
+        switch (l(input)) {
+            .ok => |x| return .{ .ok = x },
+            .err => {},
+        }
+    }
+
+    return .{ .err = .invalid_input };
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {

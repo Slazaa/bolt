@@ -23,20 +23,24 @@ value: Literal,
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
     _ = allocator;
 
-    if (input.len < 1) {
+    var input_ = input;
+
+    if (input_.len == 0) {
         return .{ .err = .invalid_input };
     }
 
-    const literal = switch (input[0]) {
-        .literal => |x| x,
-        else => return .{ .err = .invalid_input },
-    };
+    const literal = b: {
+        switch (input_[0]) {
+            .literal => |x| {
+                if (x.kind != .num) {
+                    return .{ .err = .invalid_input };
+                }
 
-    for (literal.value) |c| {
-        if (!ascii.isDigit(c)) {
-            return .{ .err = .invalid_input };
+                break :b x;
+            },
+            else => return .{ .err = .invalid_input },
         }
-    }
+    };
 
     return .{ .ok = .{ input[1..], Self{ .value = literal } } };
 }
