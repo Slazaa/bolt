@@ -22,7 +22,7 @@ kind: Kind,
 fn lexNum(input: []const u8) ParserResult([]const u8, Self) {
     var input_ = input;
 
-    if (input.len == 0 or !ascii.isDigit(input_[0])) {
+    if (input_.len == 0 or !ascii.isDigit(input_[0])) {
         return .{ .err = .invalid_input };
     }
 
@@ -32,11 +32,15 @@ fn lexNum(input: []const u8) ParserResult([]const u8, Self) {
         input_ = input_[1..];
     }
 
-    if (input_[0] == '.') {
+    if (input_.len != 0 and input_[0] == '.') {
         input_ = input_[1..];
 
-        while (input_.len != 0 and ascii.isDigit(input_[0])) {
+        if (input_.len != 0 and ascii.isDigit(input_[0])) {
             input_ = input_[1..];
+
+            while (input_.len != 0 and ascii.isDigit(input_[0])) {
+                input_ = input_[1..];
+            }
         }
     }
 

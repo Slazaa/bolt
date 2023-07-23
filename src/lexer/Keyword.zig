@@ -13,9 +13,7 @@ const ParserResult = parser.Result;
 
 const Self = @This();
 
-const keywords = [_][]const u8{
-    "let",
-};
+const keywords = [_][]const u8{};
 
 value: []const u8,
 

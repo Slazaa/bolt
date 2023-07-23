@@ -52,8 +52,8 @@ pub const Expr = union(enum) {
         var input_ = input;
 
         const parsers = .{
-            NumLit.parse,
             FnDecl.parse,
+            NumLit.parse,
             Ident.parse,
         };
 

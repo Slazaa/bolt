@@ -34,17 +34,6 @@ pub fn deinit(self: Self) void {
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
     var input_ = input;
 
-    if (input_.len == 0) {
-        return .{ .err = .invalid_input };
-    }
-
-    switch (input_[0]) {
-        .keyword => |x| if (!mem.eql(u8, x.value, "let")) return .{ .err = .invalid_input },
-        else => {},
-    }
-
-    input_ = input_[1..];
-
     const ident = b: {
         const res = switch (Ident.parse(allocator, input_)) {
             .ok => |x| x,
@@ -65,6 +54,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         };
 
         input_ = res[0];
+
         params.append(res[1]) catch {
             params.deinit();
             return .{ .err = .invalid_input };
@@ -111,6 +101,8 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
         break :b expr;
     };
+
+    std.debug.print("--- {s}\n", .{input});
 
     return .{ .ok = .{ input_, Self{
         .allocator = allocator,
