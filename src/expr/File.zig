@@ -14,24 +14,24 @@ const Token = lexer.Token;
 
 const ParserResult = parser.Result;
 
-const Expr = @import("../expr.zig").Expr;
+const Binding = @import("../Binding.zig");
 
 const Self = @This();
 
-exprs: std.ArrayList(Expr),
+bindings: std.ArrayList(Binding),
 
 pub fn init(allocator: mem.Allocator) Self {
     return Self{
-        .exprs = std.ArrayList(Expr).init(allocator),
+        .bindings = std.ArrayList(Binding).init(allocator),
     };
 }
 
 pub fn deinit(self: Self) void {
-    for (self.exprs.items) |e| {
-        e.deinit();
+    for (self.bindings.items) |binding| {
+        binding.deinit();
     }
 
-    self.exprs.deinit();
+    self.bindings.deinit();
 }
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
@@ -39,14 +39,14 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     var input_ = input;
 
     while (input_.len != 0) {
-        const res = switch (Expr.parse(allocator, input_)) {
+        const res = switch (Binding.parse(allocator, input_)) {
             .ok => |x| x,
             .err => |e| return .{ .err = e },
         };
 
         input_ = res[0];
 
-        self.exprs.append(res[1]) catch {
+        self.bindings.append(res[1]) catch {
             @panic("Could not append to File");
         };
     }
@@ -63,10 +63,10 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     }
 
     writer.print("{s}File {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    exprs: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    bindings: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 
-    for (self.exprs.items) |item| {
-        try item.format(allocator, writer, depth + 2);
+    for (self.bindings.items) |binding| {
+        try binding.format(allocator, writer, depth + 2);
     }
 
     writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;

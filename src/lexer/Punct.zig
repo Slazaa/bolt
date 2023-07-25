@@ -13,8 +13,7 @@ const ParserResult = parser.Result;
 const Self = @This();
 
 const puctuations = [_][]const u8{
-    "+", "-", "*", "/", "%",
-    "=", ":", ";",
+    "=", ";",
 };
 
 value: []const u8,

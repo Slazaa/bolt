@@ -3,13 +3,13 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
+const lexer = @import("lexer.zig");
+const parser = @import("parser.zig");
 
-const FormatError = @import("../expr.zig").FormatError;
+const FormatError = @import("expr.zig").FormatError;
 
-const Expr = @import("../expr.zig").Expr;
-const Ident = @import("../expr.zig").Ident;
+const Expr = @import("expr.zig").Expr;
+const Ident = @import("expr.zig").Ident;
 
 const Token = lexer.Token;
 
@@ -19,13 +19,13 @@ const Self = @This();
 
 allocator: mem.Allocator,
 ident: Ident,
-params: std.ArrayList(Expr),
-expr: ?*Expr,
+args: std.ArrayList(Expr),
+right: ?*Expr,
 
 pub fn deinit(self: Self) void {
-    self.params.deinit();
+    self.args.deinit();
 
-    if (self.expr) |e| {
+    if (self.right) |e| {
         e.deinit();
         self.allocator.destroy(e);
     }
@@ -37,7 +37,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     const ident = b: {
         const res = switch (Ident.parse(allocator, input_)) {
             .ok => |x| x,
-            .err => |e| return .{ .err = e },
+            .err => return .{ .err = .invalid_input },
         };
 
         input_ = res[0];
@@ -45,7 +45,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         break :b res[1];
     };
 
-    var params = std.ArrayList(Expr).init(allocator);
+    var args = std.ArrayList(Expr).init(allocator);
 
     while (true) {
         const res = switch (Expr.parse(allocator, input_)) {
@@ -55,37 +55,37 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
         input_ = res[0];
 
-        params.append(res[1]) catch {
-            params.deinit();
+        args.append(res[1]) catch {
+            args.deinit();
             return .{ .err = .invalid_input };
         };
     }
 
     if (input_.len == 0) {
-        params.deinit();
+        args.deinit();
         return .{ .err = .invalid_input };
     }
 
     switch (input_[0]) {
         .punct => |x| {
             if (!mem.eql(u8, x.value, "=")) {
-                params.deinit();
+                args.deinit();
                 return .{ .err = .invalid_input };
             }
 
             input_ = input_[1..];
         },
         else => {
-            params.deinit();
+            args.deinit();
             return .{ .err = .invalid_input };
         },
     }
 
-    const expr = b: {
+    const right = b: {
         const res = switch (Expr.parse(allocator, input_)) {
             .ok => |x| x,
             .err => |e| {
-                params.deinit();
+                args.deinit();
                 return .{ .err = e };
             },
         };
@@ -93,7 +93,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         input_ = res[0];
 
         const expr = allocator.create(Expr) catch {
-            params.deinit();
+            args.deinit();
             return .{ .err = .invalid_input };
         };
 
@@ -102,13 +102,26 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         break :b expr;
     };
 
-    std.debug.print("--- {s}\n", .{input});
+    switch (input_[0]) {
+        .punct => |x| {
+            if (!mem.eql(u8, x.value, ";")) {
+                args.deinit();
+                return .{ .err = .invalid_input };
+            }
+        },
+        else => {
+            args.deinit();
+            return .{ .err = .invalid_input };
+        },
+    }
+
+    input_ = input_[1..];
 
     return .{ .ok = .{ input_, Self{
         .allocator = allocator,
         .ident = ident,
-        .params = params,
-        .expr = expr,
+        .args = args,
+        .right = right,
     } } };
 }
 
@@ -120,22 +133,22 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
         depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
     }
 
-    writer.print("{s}FnDecl {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}Binding {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     writer.print("{s}    ident:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     try self.ident.format(allocator, writer, depth + 2);
-    writer.print("{s}    params: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    args: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 
-    for (self.params.items) |param| {
-        try param.format(allocator, writer, depth + 2);
+    for (self.args.items) |arg| {
+        try arg.format(allocator, writer, depth + 2);
     }
 
     writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 
-    if (self.expr) |e| {
-        writer.print("{s}    expr:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    if (self.right) |e| {
+        writer.print("{s}    right:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
         try e.format(allocator, writer, depth + 2);
     } else {
-        writer.print("{s}    expr: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+        writer.print("{s}    right: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     }
 
     writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;

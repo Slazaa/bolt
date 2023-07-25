@@ -4,6 +4,7 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
+const eval = @import("eval.zig");
 const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
@@ -11,8 +12,7 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\x = x
-        \\x = x
+        \\pi = 3.1415;
     ;
 
     const stdout = io.getStdOut();

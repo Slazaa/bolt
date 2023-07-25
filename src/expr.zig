@@ -12,7 +12,6 @@ const lexer = @import("lexer.zig");
 const Token = lexer.Token;
 
 pub const File = @import("expr/File.zig");
-pub const FnDecl = @import("expr/FnDecl.zig");
 pub const Ident = @import("expr/Ident.zig");
 pub const NumLit = @import("expr/NumLit.zig");
 
@@ -24,7 +23,6 @@ pub const Expr = union(enum) {
     const Self = @This();
 
     file: File,
-    fn_decl: FnDecl,
     ident: Ident,
     num_lit: NumLit,
 
@@ -33,7 +31,6 @@ pub const Expr = union(enum) {
 
         return switch (T) {
             File => .{ .file = item },
-            FnDecl => .{ .fn_decl = item },
             Ident => .{ .ident = item },
             NumLit => .{ .num_lit = item },
             else => @compileError("Expected Expr, found" ++ @typeName(T)),
@@ -43,7 +40,6 @@ pub const Expr = union(enum) {
     pub fn deinit(self: Self) void {
         switch (self) {
             .file => |x| x.deinit(),
-            .fn_decl => |x| x.deinit(),
             else => {},
         }
     }
@@ -52,7 +48,6 @@ pub const Expr = union(enum) {
         var input_ = input;
 
         const parsers = .{
-            FnDecl.parse,
             NumLit.parse,
             Ident.parse,
         };
@@ -75,7 +70,6 @@ pub const Expr = union(enum) {
     pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
         switch (self) {
             .file => |x| try x.format(allocator, writer, depth),
-            .fn_decl => |x| try x.format(allocator, writer, depth),
             .ident => |x| try x.format(allocator, writer, depth),
             .num_lit => |x| try x.format(allocator, writer, depth),
         }
