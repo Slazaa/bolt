@@ -14,44 +14,42 @@ const Token = lexer.Token;
 
 const ParserResult = parser.Result;
 
-const Binding = @import("../Binding.zig");
+const Bind = @import("../Bind.zig");
 
 const Self = @This();
 
-bindings: std.ArrayList(Binding),
-
-pub fn init(allocator: mem.Allocator) Self {
-    return Self{
-        .bindings = std.ArrayList(Binding).init(allocator),
-    };
-}
+binds: std.ArrayList(Bind),
 
 pub fn deinit(self: Self) void {
-    for (self.bindings.items) |binding| {
-        binding.deinit();
+    for (self.binds.items) |bind| {
+        bind.deinit();
     }
 
-    self.bindings.deinit();
+    self.binds.deinit();
 }
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
-    var self = Self.init(allocator);
     var input_ = input;
 
+    var binds = std.ArrayList(Bind).init(allocator);
+
     while (input_.len != 0) {
-        const res = switch (Binding.parse(allocator, input_)) {
+        const res = switch (Bind.parse(allocator, input_)) {
             .ok => |x| x,
             .err => |e| return .{ .err = e },
         };
 
         input_ = res[0];
 
-        self.bindings.append(res[1]) catch {
-            @panic("Could not append to File");
+        binds.append(res[1]) catch {
+            binds.deinit();
+            return .{ .err = .invalid_input };
         };
     }
 
-    return .{ .ok = .{ &[_]Token{}, self } };
+    return .{ .ok = .{ &[_]Token{}, .{
+        .binds = binds,
+    } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
@@ -63,10 +61,10 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
     }
 
     writer.print("{s}File {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    bindings: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    binds: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 
-    for (self.bindings.items) |binding| {
-        try binding.format(allocator, writer, depth + 2);
+    for (self.binds.items) |bind| {
+        try bind.format(allocator, writer, depth + 2);
     }
 
     writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;

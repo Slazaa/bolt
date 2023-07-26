@@ -4,6 +4,8 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
+const BindMap = @import("BindMap.zig");
+
 const eval = @import("eval.zig");
 const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
@@ -40,6 +42,17 @@ pub fn main() !void {
         try token.format(stdout_writer);
     }
 
+    try stdout_writer.writeAll("--- Bindings Map ---");
+
+    const bind_map = switch (BindMap.map(allocator, tokens.items)) {
+        .ok => |x| x[1],
+        .err => return error.BindMap,
+    };
+
+    defer bind_map.deinit();
+
+    try bind_map.format(stdout_writer);
+
     try stdout_writer.writeAll("\n--- AST ---\n");
 
     var ast = switch (expr.File.parse(allocator, tokens.items)) {
@@ -50,4 +63,6 @@ pub fn main() !void {
     defer ast.deinit();
 
     try ast.format(allocator, stdout_writer, 0);
+
+    try stdout_writer.writeAll("\n--- Eval ---\n");
 }

@@ -20,14 +20,14 @@ const Self = @This();
 allocator: mem.Allocator,
 ident: Ident,
 args: std.ArrayList(Expr),
-right: ?*Expr,
+expr: ?*Expr,
 
 pub fn deinit(self: Self) void {
     self.args.deinit();
 
-    if (self.right) |e| {
-        e.deinit();
-        self.allocator.destroy(e);
+    if (self.expr) |expr| {
+        expr.deinit();
+        self.allocator.destroy(expr);
     }
 }
 
@@ -81,7 +81,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         },
     }
 
-    const right = b: {
+    const expr = b: {
         const res = switch (Expr.parse(allocator, input_)) {
             .ok => |x| x,
             .err => |e| {
@@ -121,7 +121,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         .allocator = allocator,
         .ident = ident,
         .args = args,
-        .right = right,
+        .expr = expr,
     } } };
 }
 
@@ -133,7 +133,7 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
         depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
     }
 
-    writer.print("{s}Binding {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}Bind {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     writer.print("{s}    ident:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     try self.ident.format(allocator, writer, depth + 2);
     writer.print("{s}    args: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
@@ -144,11 +144,11 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
 
     writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
 
-    if (self.right) |e| {
-        writer.print("{s}    right:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-        try e.format(allocator, writer, depth + 2);
+    if (self.expr) |expr| {
+        writer.print("{s}    expr:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+        try expr.format(allocator, writer, depth + 2);
     } else {
-        writer.print("{s}    right: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+        writer.print("{s}    expr: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
     }
 
     writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;

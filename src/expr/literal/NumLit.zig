@@ -4,9 +4,9 @@ const ascii = std.ascii;
 const fs = std.fs;
 const mem = std.mem;
 
-const expr = @import("../expr.zig");
-const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
+const expr = @import("../../expr.zig");
+const lexer = @import("../../lexer.zig");
+const parser = @import("../../parser.zig");
 
 const FormatError = expr.FormatError;
 
