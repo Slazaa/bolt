@@ -4,6 +4,7 @@ const fs = std.fs;
 const mem = std.mem;
 
 const ParserResult = @import("parser.zig").Result;
+
 const Parser = @import("parser.zig").Parser;
 
 pub const Ident = @import("lexer/Ident.zig");
@@ -51,6 +52,7 @@ pub fn lexSkip(input: []const u8) []const u8 {
     var input_ = input;
 
     while (input_.len != 0) {
+        // Skip comments
         if (mem.startsWith(u8, input_, "#")) {
             while (true) {
                 const should_break = input_[0] == '\n';
@@ -60,17 +62,19 @@ pub fn lexSkip(input: []const u8) []const u8 {
             }
         }
 
-        if (!mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
-            break;
+        // Skip whitespaces
+        if (mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
+            input_ = input_[1..];
+            continue;
         }
 
-        input_ = input_[1..];
+        break;
     }
 
     return input_;
 }
 
-pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
+pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
     var input_ = input;
 
     while (input_.len != 0) {
@@ -89,13 +93,16 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, 
                 .err => {},
             }
         } else {
-            return .{ .err = .invalid_input };
+            const message = std.ArrayList(u8).init(allocator);
+            message.append("Invalid token") catch return .{ .err = .{.allocation} };
+
+            return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
 
         input_ = res[0];
         const token = res[1];
 
-        tokens.append(token) catch @panic("Could not append token");
+        tokens.append(token) catch return .{ .err = .{.allocation} };
     }
 
     return .{ .ok = .{ void{}, void{} } };
