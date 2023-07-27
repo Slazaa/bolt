@@ -2,6 +2,7 @@ const std = @import("std");
 
 const ascii = std.ascii;
 const fs = std.fs;
+const mem = std.mem;
 
 const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
@@ -18,7 +19,7 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
     var input_ = input;
 
     if (input_.len == 0 or (!ascii.isAlphabetic(input_[0]) and input_[0] != '_')) {
-        return .{ .err = .invalid_input };
+        return .{ .err = .{ .invalid_input = .{ .message = null } } };
     }
 
     input_ = input_[1..];

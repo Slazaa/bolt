@@ -25,7 +25,7 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
         }
     }
 
-    return .{ .err = .invalid_input };
+    return .{ .err = .{ .invalid_input = .{ .message = null } } };
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {

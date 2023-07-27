@@ -21,7 +21,7 @@ pub fn main() !void {
     const stdout_writer = stdout.writer();
 
     try stdout_writer.writeAll("--- Input ---\n");
-    try stdout_writer.print("{s}\n", .{input});
+    try stdout_writer.print("{s}\n\n", .{input});
 
     var gpa = heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -31,38 +31,48 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    switch (lexer.lex(input, &tokens)) {
-        .ok => {},
-        .err => return error.LexerError,
-    }
+    try stdout_writer.writeAll("--- Tokens ---\n");
 
-    try stdout_writer.writeAll("\n--- Tokens ---\n");
+    switch (lexer.lex(allocator, input, &tokens)) {
+        .ok => {},
+        .err => |e| {
+            try e.format(stdout_writer);
+            e.deinit();
+
+            return;
+        },
+    }
 
     for (tokens.items) |token| {
         try token.format(stdout_writer);
     }
 
-    try stdout_writer.writeAll("--- Bindings Map ---");
+    try stdout_writer.writeAll("\n--- Bindings Map ---\n");
 
     const bind_map = switch (BindMap.map(allocator, tokens.items)) {
         .ok => |x| x[1],
-        .err => return error.BindMap,
+        .err => |e| {
+            try e.format(stdout_writer);
+            e.deinit();
+
+            return;
+        },
     };
 
     defer bind_map.deinit();
 
     try bind_map.format(stdout_writer);
 
-    try stdout_writer.writeAll("\n--- AST ---\n");
+    // try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast = switch (expr.File.parse(allocator, tokens.items)) {
-        .ok => |x| x[1],
-        .err => return error.ASTError,
-    };
+    // var ast = switch (expr.File.parse(allocator, tokens.items)) {
+    //     .ok => |x| x[1],
+    //     .err => return error.ASTError,
+    // };
 
-    defer ast.deinit();
+    // defer ast.deinit();
 
-    try ast.format(allocator, stdout_writer, 0);
+    // try ast.format(allocator, stdout_writer, 0);
 
-    try stdout_writer.writeAll("\n--- Eval ---\n");
+    // try stdout_writer.writeAll("\n--- Eval ---\n");
 }

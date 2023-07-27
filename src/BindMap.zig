@@ -7,6 +7,7 @@ const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
 
+const Expr = expr.Expr;
 const Literal = expr.Literal;
 const Ident = expr.Ident;
 
@@ -22,7 +23,7 @@ const FormatError = error{
 
 const Map = struct {
     ident: Ident,
-    args: std.ArrayList(Literal),
+    args: std.ArrayList(Expr),
 
     pub fn deinit(self: Map) void {
         self.args.deinit();
@@ -33,7 +34,8 @@ const Map = struct {
 
         for (self.args.items) |arg| {
             switch (arg) {
-                .num => |x| writer.print("{s}", .{x.value.value}) catch return error.CouldNotFormat,
+                .ident => |x| writer.writeAll(x.value.value) catch return error.CouldNotFormat,
+                else => @panic("Invalid arg type"),
             }
         }
 
@@ -62,10 +64,7 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
         const ident = b: {
             const res = switch (Ident.parse(allocator, input_)) {
                 .ok => |x| x,
-                .err => {
-                    self.deinit();
-                    return .{ .err = .invalid_input };
-                },
+                .err => |e| return .{ .err = e },
             };
 
             input_ = res[0];
@@ -73,7 +72,7 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
             break :b res[1];
         };
 
-        var args = std.ArrayList(Literal).init(allocator);
+        var args = std.ArrayList(Expr).init(allocator);
 
         while (true) {
             switch (input_[0]) {
@@ -81,28 +80,39 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
                 else => {},
             }
 
-            const res = switch (Literal.parse(allocator, input_)) {
-                .ok => |x| x,
-                .err => {
+            var res: struct { []const Token, Expr } = undefined;
+
+            switch (Ident.parse(allocator, input_)) {
+                .ok => |x| res = .{ x[0], Expr.from(x[1]) },
+                .err => |e| {
+                    e.deinit();
                     self.deinit();
-                    return .{ .err = .invalid_input };
+
+                    var message = std.ArrayList(u8).init(allocator);
+                    message.appendSlice("Could not parse argument") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                    return .{ .err = .{ .invalid_input = .{ .message = message } } };
                 },
-            };
+            }
 
             input_ = res[0];
+
+            args.append(res[1]) catch return .{ .err = .{ .allocation_failed = void{} } };
         }
 
         self.binds.append(Map{
             .ident = ident,
             .args = args,
-        }) catch {
-            @panic("Failed appening bind");
-        };
+        }) catch return .{ .err = .{ .allocation_failed = void{} } };
 
         while (true) {
             if (input_.len == 0) {
                 self.deinit();
-                return .{ .err = .invalid_input };
+
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Extra tokens were found") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
             }
 
             switch (input_[0]) {

@@ -23,7 +23,7 @@ fn lexNum(input: []const u8) ParserResult([]const u8, Self) {
     var input_ = input;
 
     if (input_.len == 0 or !ascii.isDigit(input_[0])) {
-        return .{ .err = .invalid_input };
+        return .{ .err = .{ .invalid_input = .{ .message = null } } };
     }
 
     input_ = input_[1..];
@@ -62,7 +62,7 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
         }
     }
 
-    return .{ .err = .invalid_input };
+    return .{ .err = .{ .invalid_input = .{ .message = null } } };
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {

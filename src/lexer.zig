@@ -93,8 +93,8 @@ pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(T
                 .err => {},
             }
         } else {
-            const message = std.ArrayList(u8).init(allocator);
-            message.append("Invalid token") catch return .{ .err = .{.allocation} };
+            var message = std.ArrayList(u8).init(allocator);
+            message.appendSlice("Invalid token") catch return .{ .err = .{ .allocation_failed = void{} } };
 
             return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
@@ -102,7 +102,7 @@ pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(T
         input_ = res[0];
         const token = res[1];
 
-        tokens.append(token) catch return .{ .err = .{.allocation} };
+        tokens.append(token) catch return .{ .err = .{ .allocation_failed = void{} } };
     }
 
     return .{ .ok = .{ void{}, void{} } };
