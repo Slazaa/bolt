@@ -64,7 +64,10 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
         const ident = b: {
             const res = switch (Ident.parse(allocator, input_)) {
                 .ok => |x| x,
-                .err => |e| return .{ .err = e },
+                .err => |e| {
+                    self.deinit();
+                    return .{ .err = e };
+                },
             };
 
             input_ = res[0];

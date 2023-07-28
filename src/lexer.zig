@@ -7,6 +7,8 @@ const ParserResult = @import("parser.zig").Result;
 
 const Parser = @import("parser.zig").Parser;
 
+const Position = @import("Position.zig");
+
 pub const Ident = @import("lexer/Ident.zig");
 pub const Keyword = @import("lexer/Keyword.zig");
 pub const Literal = @import("lexer/Literal.zig");
@@ -46,25 +48,39 @@ pub const Token = union(enum) {
     }
 };
 
-const whitespaces = " \t\n\r";
+const whitespaces = " \n\r";
 
-pub fn lexSkip(input: []const u8) []const u8 {
+pub fn lexSkip(input: []const u8, position: Position) struct { []const u8, Position } {
     var input_ = input;
 
     while (input_.len != 0) {
-        // Skip comments
+        // Skip comment
         if (mem.startsWith(u8, input_, "#")) {
             while (true) {
                 const should_break = input_[0] == '\n';
+
+                position.index += 1;
                 input_ = input_[1..];
 
                 if (should_break) break;
             }
+
+            position.column = 0;
+            position.line += 1;
         }
 
-        // Skip whitespaces
+        // Skip whitespace
         if (mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
+            if (input_[0] == '\n') {
+                position.column = 0;
+                position.line += 1;
+            } else {
+                position.column += 1;
+            }
+
+            position.index += 1;
             input_ = input_[1..];
+
             continue;
         }
 
@@ -77,8 +93,19 @@ pub fn lexSkip(input: []const u8) []const u8 {
 pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
     var input_ = input;
 
+    var position = Position{
+        .line = 0,
+        .column = 0,
+        .index = 0,
+    };
+
     while (input_.len != 0) {
-        input_ = lexSkip(input_);
+        {
+            const res = lexSkip(input_, position);
+
+            input_ = res[0];
+            position = res[1];
+        }
 
         const parsers = .{
             Keyword.lex,
@@ -87,22 +114,33 @@ pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(T
             Punct.lex,
         };
 
-        const res = b: inline for (parsers) |parser| {
-            switch (parser(input_)) {
-                .ok => |x| break :b .{ x[0], Token.from(x[1]) },
-                .err => {},
-            }
-        } else {
-            var message = std.ArrayList(u8).init(allocator);
-            message.appendSlice("Invalid token") catch return .{ .err = .{ .allocation_failed = void{} } };
+        var token: Token = undefined;
 
-            return .{ .err = .{ .invalid_input = .{ .message = message } } };
-        };
+        {
+            const res = b: inline for (parsers) |parser| {
+                switch (parser(input_)) {
+                    .ok => |x| break :b .{ x[0], Token.from(x[1]) },
+                    .err => {},
+                }
+            } else {
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Invalid token") catch return .{ .err = .{ .allocation_failed = void{} } };
 
-        input_ = res[0];
-        const token = res[1];
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+            };
+
+            input_ = res[0];
+            token = res[1];
+        }
 
         tokens.append(token) catch return .{ .err = .{ .allocation_failed = void{} } };
+    }
+
+    if (position.index != input.len) {
+        var message = std.ArrayList(u8).init(allocator);
+        message.appendSlice("Index does not match input size") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+        return .{ .err = .{ .invalid_input = .{ .message = message } } };
     }
 
     return .{ .ok = .{ void{}, void{} } };
