@@ -7,9 +7,9 @@ const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
 
 const FormatError = lexer.FormatError;
-const InputResult = lexer.InputResult;
 
 const ParserResult = parser.Result;
+const InputResult = parser.InputResult;
 
 const Position = @import("../Position.zig");
 

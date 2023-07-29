@@ -6,6 +6,7 @@ const mem = std.mem;
 const ParserResult = @import("parser.zig").Result;
 
 const Parser = @import("parser.zig").Parser;
+const InputResult = @import("parser.zig").InputResult;
 
 const Position = @import("Position.zig");
 
@@ -47,10 +48,6 @@ pub const Token = union(enum) {
         }
     }
 };
-
-pub fn InputResult(comptime T: type) type {
-    return struct { T, Position };
-}
 
 const whitespaces = " \n\r";
 

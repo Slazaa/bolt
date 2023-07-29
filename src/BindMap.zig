@@ -83,10 +83,8 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
                 else => {},
             }
 
-            var res: struct { []const Token, Expr } = undefined;
-
-            switch (Ident.parse(allocator, input_)) {
-                .ok => |x| res = .{ x[0], Expr.from(x[1]) },
+            const res = switch (Ident.parse(allocator, input_)) {
+                .ok => |x| .{ x[0], Expr.from(x[1]) },
                 .err => |e| {
                     e.deinit();
                     self.deinit();
@@ -96,7 +94,7 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
 
                     return .{ .err = .{ .invalid_input = .{ .message = message } } };
                 },
-            }
+            };
 
             input_ = res[0];
 
@@ -113,17 +111,21 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
                 self.deinit();
 
                 var message = std.ArrayList(u8).init(allocator);
-                message.appendSlice("Extra tokens were found") catch return .{ .err = .{ .allocation_failed = void{} } };
+                message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
 
                 return .{ .err = .{ .invalid_input = .{ .message = message } } };
             }
 
-            switch (input_[0]) {
-                .punct => |x| if (!mem.eql(u8, x.value, ";")) break,
-                else => {},
-            }
+            const should_break = switch (input_[0]) {
+                .punct => |x| mem.eql(u8, x.value, ";"),
+                else => false,
+            };
 
             input_ = input_[1..];
+
+            if (should_break) {
+                break;
+            }
         }
     }
 

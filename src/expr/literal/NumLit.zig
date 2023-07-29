@@ -11,7 +11,6 @@ const parser = @import("../../parser.zig");
 const FormatError = expr.FormatError;
 
 const Token = lexer.Token;
-
 const Literal = lexer.Literal;
 
 const ParserResult = parser.Result;
@@ -21,28 +20,39 @@ const Self = @This();
 value: Literal,
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
-    _ = allocator;
-
     var input_ = input;
 
     if (input_.len == 0) {
-        return .{ .err = .invalid_input };
+        var message = std.ArrayList(u8).init(allocator);
+        message.appendSlice("Expected NumLit") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+        return .{ .err = .{ .invalid_input = .{ .message = message } } };
     }
 
     const literal = b: {
         switch (input_[0]) {
             .literal => |x| {
                 if (x.kind != .num) {
-                    return .{ .err = .invalid_input };
+                    var message = std.ArrayList(u8).init(allocator);
+                    message.appendSlice("Expected NumLit") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                    return .{ .err = .{ .invalid_input = .{ .message = message } } };
                 }
 
                 break :b x;
             },
-            else => return .{ .err = .invalid_input },
+            else => {
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Expected NumLit") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+            },
         }
     };
 
-    return .{ .ok = .{ input[1..], Self{ .value = literal } } };
+    return .{ .ok = .{ input[1..], Self{
+        .value = literal,
+    } } };
 }
 
 pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {

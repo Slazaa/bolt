@@ -63,16 +63,16 @@ pub fn main() !void {
 
     try bind_map.format(stdout_writer);
 
-    // try stdout_writer.writeAll("\n--- AST ---\n");
+    try stdout_writer.writeAll("\n--- AST ---\n");
 
-    // var ast = switch (expr.File.parse(allocator, tokens.items)) {
-    //     .ok => |x| x[1],
-    //     .err => return error.ASTError,
-    // };
+    var ast = switch (expr.File.parse(allocator, tokens.items)) {
+        .ok => |x| x[1],
+        .err => return error.ASTError,
+    };
 
-    // defer ast.deinit();
+    defer ast.deinit();
 
-    // try ast.format(allocator, stdout_writer, 0);
+    try ast.format(allocator, stdout_writer, 0);
 
     // try stdout_writer.writeAll("\n--- Eval ---\n");
 }

@@ -4,7 +4,6 @@ const fs = std.fs;
 const mem = std.mem;
 
 const lexer = @import("lexer.zig");
-const parser = @import("parser.zig");
 
 const FormatError = @import("expr.zig").FormatError;
 
@@ -13,7 +12,7 @@ const Ident = @import("expr.zig").Ident;
 
 const Token = lexer.Token;
 
-const ParserResult = parser.Result;
+const ParserResult = @import("parser.zig").Result;
 
 const Self = @This();
 
@@ -23,6 +22,10 @@ args: std.ArrayList(Expr),
 expr: ?*Expr,
 
 pub fn deinit(self: Self) void {
+    for (self.args.items) |arg| {
+        arg.deinit();
+    }
+
     self.args.deinit();
 
     if (self.expr) |expr| {
@@ -37,7 +40,12 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     const ident = b: {
         const res = switch (Ident.parse(allocator, input_)) {
             .ok => |x| x,
-            .err => return .{ .err = .invalid_input },
+            .err => {
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Expected Ident") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+            },
         };
 
         input_ = res[0];
@@ -47,37 +55,55 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
     var args = std.ArrayList(Expr).init(allocator);
 
-    while (true) {
-        const res = switch (Expr.parse(allocator, input_)) {
-            .ok => |x| x,
-            .err => break,
+    const parsers = .{
+        Ident.parse,
+    };
+
+    arg_loop: while (true) {
+        const res = b: inline for (parsers) |parser| {
+            switch (parser(allocator, input_)) {
+                .ok => |x| break :b .{ x[0], Expr.from(x[1]) },
+                .err => |e| {
+                    e.deinit();
+                    break :arg_loop;
+                },
+            }
         };
 
         input_ = res[0];
 
-        args.append(res[1]) catch {
-            args.deinit();
-            return .{ .err = .invalid_input };
-        };
+        args.append(res[1]) catch return .{ .err = .{ .allocation_failed = void{} } };
     }
 
     if (input_.len == 0) {
         args.deinit();
-        return .{ .err = .invalid_input };
+
+        var message = std.ArrayList(u8).init(allocator);
+        message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+        return .{ .err = .{ .invalid_input = .{ .message = message } } };
     }
 
     switch (input_[0]) {
         .punct => |x| {
             if (!mem.eql(u8, x.value, "=")) {
                 args.deinit();
-                return .{ .err = .invalid_input };
+
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
             }
 
             input_ = input_[1..];
         },
         else => {
             args.deinit();
-            return .{ .err = .invalid_input };
+
+            var message = std.ArrayList(u8).init(allocator);
+            message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            return .{ .err = .{ .invalid_input = .{ .message = message } } };
         },
     }
 
@@ -94,7 +120,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
         const expr = allocator.create(Expr) catch {
             args.deinit();
-            return .{ .err = .invalid_input };
+            return .{ .err = .{ .allocation_failed = void{} } };
         };
 
         expr.* = res[1];
@@ -106,12 +132,20 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
         .punct => |x| {
             if (!mem.eql(u8, x.value, ";")) {
                 args.deinit();
-                return .{ .err = .invalid_input };
+
+                var message = std.ArrayList(u8).init(allocator);
+                message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+                return .{ .err = .{ .invalid_input = .{ .message = message } } };
             }
         },
         else => {
             args.deinit();
-            return .{ .err = .invalid_input };
+
+            var message = std.ArrayList(u8).init(allocator);
+            message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            return .{ .err = .{ .invalid_input = .{ .message = message } } };
         },
     }
 

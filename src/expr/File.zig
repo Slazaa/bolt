@@ -41,10 +41,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
         input_ = res[0];
 
-        binds.append(res[1]) catch {
-            binds.deinit();
-            return .{ .err = .invalid_input };
-        };
+        binds.append(res[1]) catch return .{ .err = .{ .allocation_failed = void{} } };
     }
 
     return .{ .ok = .{ &[_]Token{}, .{

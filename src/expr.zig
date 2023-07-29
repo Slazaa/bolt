@@ -59,7 +59,10 @@ pub const Expr = union(enum) {
                 .err => {},
             }
         } else {
-            return .{ .err = .invalid_input };
+            var message = std.ArrayList(u8).init(allocator);
+            message.appendSlice("Could not parse Expr") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
 
         input_ = res[0];

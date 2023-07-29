@@ -7,6 +7,12 @@ const lexer = @import("lexer.zig");
 
 const FormatError = lexer.FormatError;
 
+const Position = @import("Position.zig");
+
+pub fn InputResult(comptime T: type) type {
+    return struct { T, Position };
+}
+
 const InvalidInputError = struct {
     const Self = @This();
 
