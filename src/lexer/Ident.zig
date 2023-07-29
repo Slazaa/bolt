@@ -8,15 +8,19 @@ const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
 
 const FormatError = lexer.FormatError;
+const InputResult = lexer.InputResult;
 
 const ParserResult = parser.Result;
+
+const Position = @import("../Position.zig");
 
 const Self = @This();
 
 value: []const u8,
 
-pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
+pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]const u8), Self) {
     var input_ = input;
+    var position_ = position;
 
     if (input_.len == 0 or (!ascii.isAlphabetic(input_[0]) and input_[0] != '_')) {
         return .{ .err = .{ .invalid_input = .{ .message = null } } };
@@ -28,8 +32,13 @@ pub fn lex(input: []const u8) ParserResult([]const u8, Self) {
         input_ = input_[1..];
     }
 
-    return .{ .ok = .{ input_, Self{
-        .value = input[0 .. input.len - input_.len],
+    const token_size = input.len - input_.len;
+
+    position_.column += token_size;
+    position_.index += token_size;
+
+    return .{ .ok = .{ .{ input_, position_ }, Self{
+        .value = input[0..token_size],
     } } };
 }
 
