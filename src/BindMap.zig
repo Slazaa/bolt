@@ -160,7 +160,10 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult(
         const bind = b: {
             const res = switch (Map.parse(allocator, input_)) {
                 .ok => |x| x,
-                .err => |e| e.deinit(),
+                .err => |e| {
+                    e.deinit();
+                    break;
+                },
             };
 
             input_ = res[0];
