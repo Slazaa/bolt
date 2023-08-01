@@ -19,7 +19,7 @@ const Self = @This();
 allocator: mem.Allocator,
 ident: Ident,
 args: std.ArrayList(Expr),
-expr: ?*Expr,
+expr: *Expr,
 
 pub fn deinit(self: Self) void {
     for (self.args.items) |arg| {
@@ -28,10 +28,8 @@ pub fn deinit(self: Self) void {
 
     self.args.deinit();
 
-    if (self.expr) |expr| {
-        expr.deinit();
-        self.allocator.destroy(expr);
-    }
+    self.expr.deinit();
+    self.allocator.destroy(self.expr);
 }
 
 pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
@@ -229,19 +227,11 @@ pub fn format(
         return error.CouldNotFormat;
     };
 
-    if (self.expr) |expr| {
-        writer.print("{s}    expr:\n", .{depth_tabs.items}) catch {
-            return error.CouldNotFormat;
-        };
+    writer.print("{s}    expr:\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
 
-        try expr.format(allocator, writer, depth + 2);
-    } else {
-        writer.print("{s}    expr: null\n", .{
-            depth_tabs.items,
-        }) catch {
-            return error.CouldNotFormat;
-        };
-    }
+    try self.expr.format(allocator, writer, depth + 2);
 
     writer.print("{s}}}\n", .{depth_tabs.items}) catch {
         return error.CouldNotFormat;

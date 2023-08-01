@@ -25,7 +25,7 @@ pub const Expr = union(enum) {
 
     file: File,
     ident: Ident,
-    num_lit: NumLit,
+    literal: Literal,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
@@ -33,7 +33,7 @@ pub const Expr = union(enum) {
         return switch (T) {
             File => .{ .file = item },
             Ident => .{ .ident = item },
-            NumLit => .{ .num_lit = item },
+            Literal => .{ .literal = item },
             else => @compileError("Expected Expr, found " ++ @typeName(T)),
         };
     }
@@ -52,7 +52,7 @@ pub const Expr = union(enum) {
         var input_ = input;
 
         const parsers = .{
-            NumLit.parse,
+            Literal.parse,
             Ident.parse,
         };
 
@@ -84,21 +84,9 @@ pub const Expr = union(enum) {
         depth: usize,
     ) FormatError!void {
         switch (self) {
-            .file => |x| try x.format(
-                allocator,
-                writer,
-                depth,
-            ),
-            .ident => |x| try x.format(
-                allocator,
-                writer,
-                depth,
-            ),
-            .num_lit => |x| try x.format(
-                allocator,
-                writer,
-                depth,
-            ),
+            .file => |x| try x.format(allocator, writer, depth),
+            .ident => |x| try x.format(allocator, writer, depth),
+            .literal => |x| try x.format(allocator, writer, depth),
         }
     }
 };

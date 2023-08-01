@@ -1,9 +1,13 @@
 const std = @import("std");
 
+const fs = std.fs;
 const mem = std.mem;
 
+const expr = @import("../expr.zig");
 const lexer = @import("../lexer.zig");
 const parser = @import("../parser.zig");
+
+const FormatError = expr.FormatError;
 
 const Token = lexer.Token;
 
@@ -41,12 +45,29 @@ pub const Literal = union(enum) {
                 .err => {},
             }
         } else {
-            return .{ .err = .invalid_input };
+            var message = std.ArrayList(u8).init(allocator);
+
+            message.appendSlice("Coult not parse Literal") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
+
+            return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
 
         input_ = res[0];
         const literal = res[1];
 
         return .{ .ok = .{ input_, literal } };
+    }
+
+    pub fn format(
+        self: Self,
+        allocator: mem.Allocator,
+        writer: fs.File.Writer,
+        depth: usize,
+    ) FormatError!void {
+        switch (self) {
+            .num => |x| try x.format(allocator, writer, depth),
+        }
     }
 };
