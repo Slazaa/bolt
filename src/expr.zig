@@ -45,7 +45,10 @@ pub const Expr = union(enum) {
         }
     }
 
-    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
+        []const Token,
+        Self,
+    ) {
         var input_ = input;
 
         const parsers = .{
@@ -56,11 +59,14 @@ pub const Expr = union(enum) {
         const res = b: inline for (parsers) |parser| {
             switch (parser(allocator, input_)) {
                 .ok => |x| break :b .{ x[0], Self.from(x[1]) },
-                .err => {},
+                .err => |e| e.deinit(),
             }
         } else {
             var message = std.ArrayList(u8).init(allocator);
-            message.appendSlice("Could not parse Expr") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            message.appendSlice("Could not parse Expr") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
 
             return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
@@ -71,11 +77,28 @@ pub const Expr = union(enum) {
         return .{ .ok = .{ input_, expr } };
     }
 
-    pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
+    pub fn format(
+        self: Self,
+        allocator: mem.Allocator,
+        writer: fs.File.Writer,
+        depth: usize,
+    ) FormatError!void {
         switch (self) {
-            .file => |x| try x.format(allocator, writer, depth),
-            .ident => |x| try x.format(allocator, writer, depth),
-            .num_lit => |x| try x.format(allocator, writer, depth),
+            .file => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
+            .ident => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
+            .num_lit => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
         }
     }
 };

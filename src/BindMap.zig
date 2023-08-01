@@ -29,12 +29,107 @@ const Map = struct {
         self.args.deinit();
     }
 
+    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
+        []const Token,
+        Map,
+    ) {
+        var input_ = input;
+
+        const ident = b: {
+            const res = switch (Ident.parse(
+                allocator,
+                input_,
+            )) {
+                .ok => |x| x,
+                .err => |e| return .{ .err = e },
+            };
+
+            input_ = res[0];
+
+            break :b res[1];
+        };
+
+        var args = std.ArrayList(Expr).init(allocator);
+
+        while (true) {
+            switch (input_[0]) {
+                .punct => |x| if (mem.eql(u8, x.value, "=")) break,
+                else => {},
+            }
+
+            const res = switch (Ident.parse(
+                allocator,
+                input_,
+            )) {
+                .ok => |x| .{ x[0], Expr.from(x[1]) },
+                .err => |e| {
+                    e.deinit();
+                    args.deinit();
+
+                    var message = std.ArrayList(u8).init(allocator);
+
+                    message.appendSlice("Could not parse argument") catch {
+                        return .{ .err = .{ .allocation_failed = void{} } };
+                    };
+
+                    return .{ .err = .{ .invalid_input = .{
+                        .message = message,
+                    } } };
+                },
+            };
+
+            input_ = res[0];
+
+            args.append(res[1]) catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
+        }
+
+        while (true) {
+            if (input_.len == 0) {
+                args.deinit();
+
+                var message = std.ArrayList(u8).init(allocator);
+
+                message.appendSlice("Expected ';'") catch {
+                    return .{ .err = .{ .allocation_failed = void{} } };
+                };
+
+                return .{ .err = .{ .invalid_input = .{
+                    .message = message,
+                } } };
+            }
+
+            const should_break = switch (input_[0]) {
+                .punct => |x| mem.eql(u8, x.value, ";"),
+                else => false,
+            };
+
+            input_ = input_[1..];
+
+            if (should_break) {
+                break;
+            }
+        }
+
+        return .{ .ok = .{ input_, Map{
+            .ident = ident,
+            .args = args,
+        } } };
+    }
+
     pub fn format(self: Map, writer: fs.File.Writer) FormatError!void {
-        writer.print("- {s} ", .{self.ident.value.value}) catch return error.CouldNotFormat;
+        writer.print("- {s} ", .{self.ident.value.value}) catch {
+            return error.CouldNotFormat;
+        };
 
         for (self.args.items) |arg| {
             switch (arg) {
-                .ident => |x| writer.writeAll(x.value.value) catch return error.CouldNotFormat,
+                .ident => |x| writer.print("{s} ", .{
+                    x.value.value,
+                }) catch {
+                    return error.CouldNotFormat;
+                },
                 else => @panic("Invalid arg type"),
             }
         }
@@ -53,21 +148,19 @@ pub fn deinit(self: Self) void {
     self.binds.deinit();
 }
 
-pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult(
+    []const Token,
+    Self,
+) {
     var input_ = input;
 
-    var self = Self{
-        .binds = std.ArrayList(Map).init(allocator),
-    };
+    var binds = std.ArrayList(Map).init(allocator);
 
     while (input_.len != 0) {
-        const ident = b: {
-            const res = switch (Ident.parse(allocator, input_)) {
+        const bind = b: {
+            const res = switch (Map.parse(allocator, input_)) {
                 .ok => |x| x,
-                .err => |e| {
-                    self.deinit();
-                    return .{ .err = e };
-                },
+                .err => |e| e.deinit(),
             };
 
             input_ = res[0];
@@ -75,61 +168,14 @@ pub fn map(allocator: mem.Allocator, input: []const Token) ParserResult([]const 
             break :b res[1];
         };
 
-        var args = std.ArrayList(Expr).init(allocator);
-
-        while (true) {
-            switch (input_[0]) {
-                .punct => |x| if (mem.eql(u8, x.value, "=")) break,
-                else => {},
-            }
-
-            const res = switch (Ident.parse(allocator, input_)) {
-                .ok => |x| .{ x[0], Expr.from(x[1]) },
-                .err => |e| {
-                    e.deinit();
-                    self.deinit();
-
-                    var message = std.ArrayList(u8).init(allocator);
-                    message.appendSlice("Could not parse argument") catch return .{ .err = .{ .allocation_failed = void{} } };
-
-                    return .{ .err = .{ .invalid_input = .{ .message = message } } };
-                },
-            };
-
-            input_ = res[0];
-
-            args.append(res[1]) catch return .{ .err = .{ .allocation_failed = void{} } };
-        }
-
-        self.binds.append(Map{
-            .ident = ident,
-            .args = args,
-        }) catch return .{ .err = .{ .allocation_failed = void{} } };
-
-        while (true) {
-            if (input_.len == 0) {
-                self.deinit();
-
-                var message = std.ArrayList(u8).init(allocator);
-                message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
-
-                return .{ .err = .{ .invalid_input = .{ .message = message } } };
-            }
-
-            const should_break = switch (input_[0]) {
-                .punct => |x| mem.eql(u8, x.value, ";"),
-                else => false,
-            };
-
-            input_ = input_[1..];
-
-            if (should_break) {
-                break;
-            }
-        }
+        binds.append(bind) catch {
+            return .{ .err = .{ .allocation_failed = void{} } };
+        };
     }
 
-    return .{ .ok = .{ input_, self } };
+    return .{ .ok = .{ input_, Self{
+        .binds = binds,
+    } } };
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {

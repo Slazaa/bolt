@@ -34,17 +34,27 @@ pub fn deinit(self: Self) void {
     }
 }
 
-pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
+    []const Token,
+    Self,
+) {
     var input_ = input;
 
     const ident = b: {
         const res = switch (Ident.parse(allocator, input_)) {
             .ok => |x| x,
-            .err => {
-                var message = std.ArrayList(u8).init(allocator);
-                message.appendSlice("Expected Ident") catch return .{ .err = .{ .allocation_failed = void{} } };
+            .err => |e| {
+                e.deinit();
 
-                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+                var message = std.ArrayList(u8).init(allocator);
+
+                message.appendSlice("Expected Ident") catch {
+                    return .{ .err = .{ .allocation_failed = void{} } };
+                };
+
+                return .{ .err = .{ .invalid_input = .{
+                    .message = message,
+                } } };
             },
         };
 
@@ -72,14 +82,19 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
 
         input_ = res[0];
 
-        args.append(res[1]) catch return .{ .err = .{ .allocation_failed = void{} } };
+        args.append(res[1]) catch {
+            return .{ .err = .{ .allocation_failed = void{} } };
+        };
     }
 
     if (input_.len == 0) {
         args.deinit();
 
         var message = std.ArrayList(u8).init(allocator);
-        message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+        message.appendSlice("Expected '='") catch {
+            return .{ .err = .{ .allocation_failed = void{} } };
+        };
 
         return .{ .err = .{ .invalid_input = .{ .message = message } } };
     }
@@ -90,9 +105,14 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
                 args.deinit();
 
                 var message = std.ArrayList(u8).init(allocator);
-                message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
 
-                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+                message.appendSlice("Expected '='") catch {
+                    return .{ .err = .{ .allocation_failed = void{} } };
+                };
+
+                return .{ .err = .{ .invalid_input = .{
+                    .message = message,
+                } } };
             }
 
             input_ = input_[1..];
@@ -101,7 +121,10 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
             args.deinit();
 
             var message = std.ArrayList(u8).init(allocator);
-            message.appendSlice("Expected '='") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            message.appendSlice("Expected '='") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
 
             return .{ .err = .{ .invalid_input = .{ .message = message } } };
         },
@@ -134,16 +157,24 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
                 args.deinit();
 
                 var message = std.ArrayList(u8).init(allocator);
-                message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
 
-                return .{ .err = .{ .invalid_input = .{ .message = message } } };
+                message.appendSlice("Expected ';'") catch {
+                    return .{ .err = .{ .allocation_failed = void{} } };
+                };
+
+                return .{ .err = .{ .invalid_input = .{
+                    .message = message,
+                } } };
             }
         },
         else => {
             args.deinit();
 
             var message = std.ArrayList(u8).init(allocator);
-            message.appendSlice("Expected ';'") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            message.appendSlice("Expected ';'") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
 
             return .{ .err = .{ .invalid_input = .{ .message = message } } };
         },
@@ -159,7 +190,12 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]cons
     } } };
 }
 
-pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, depth: usize) FormatError!void {
+pub fn format(
+    self: Self,
+    allocator: mem.Allocator,
+    writer: fs.File.Writer,
+    depth: usize,
+) FormatError!void {
     var depth_tabs = std.ArrayList(u8).init(allocator);
     defer depth_tabs.deinit();
 
@@ -167,23 +203,47 @@ pub fn format(self: Self, allocator: mem.Allocator, writer: fs.File.Writer, dept
         depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
     }
 
-    writer.print("{s}Bind {{\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    writer.print("{s}    ident:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
-    try self.ident.format(allocator, writer, depth + 2);
-    writer.print("{s}    args: [\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}Bind {{\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
+
+    writer.print("{s}    ident:\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
+
+    try self.ident.format(
+        allocator,
+        writer,
+        depth + 2,
+    );
+
+    writer.print("{s}    args: [\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
 
     for (self.args.items) |arg| {
         try arg.format(allocator, writer, depth + 2);
     }
 
-    writer.print("{s}    ]\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}    ]\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
 
     if (self.expr) |expr| {
-        writer.print("{s}    expr:\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+        writer.print("{s}    expr:\n", .{depth_tabs.items}) catch {
+            return error.CouldNotFormat;
+        };
+
         try expr.format(allocator, writer, depth + 2);
     } else {
-        writer.print("{s}    expr: null\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+        writer.print("{s}    expr: null\n", .{
+            depth_tabs.items,
+        }) catch {
+            return error.CouldNotFormat;
+        };
     }
 
-    writer.print("{s}}}\n", .{depth_tabs.items}) catch return error.CouldNotFormat;
+    writer.print("{s}}}\n", .{depth_tabs.items}) catch {
+        return error.CouldNotFormat;
+    };
 }

@@ -20,12 +20,18 @@ const keywords = [_][]const u8{};
 
 value: []const u8,
 
-pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]const u8), Self) {
+pub fn lex(input: []const u8, position: Position) ParserResult(
+    InputResult([]const u8),
+    Self,
+) {
     var input_ = input;
     var position_ = position;
 
     for (keywords) |keyword| {
-        if (mem.startsWith(u8, input, keyword) and (input.len == keyword.len or !ascii.isAlphanumeric(input[keyword.len]))) {
+        if (mem.startsWith(u8, input, keyword) and
+            (input.len == keyword.len or
+            !ascii.isAlphanumeric(input[keyword.len])))
+        {
             input_ = input_[keyword.len..];
 
             position_.column += keyword.len;
@@ -41,5 +47,7 @@ pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]con
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
-    writer.print("Keyword | {s}\n", .{self.value}) catch return error.CouldNotFormat;
+    writer.print("Keyword | {s}\n", .{self.value}) catch {
+        return error.CouldNotFormat;
+    };
 }

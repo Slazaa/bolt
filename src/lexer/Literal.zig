@@ -22,7 +22,10 @@ pub const Kind = enum {
 value: []const u8,
 kind: Kind,
 
-fn lexNum(input: []const u8, position: Position) ParserResult(InputResult([]const u8), Self) {
+fn lexNum(input: []const u8, position: Position) ParserResult(
+    InputResult([]const u8),
+    Self,
+) {
     var input_ = input;
     var position_ = position;
 
@@ -59,7 +62,10 @@ fn lexNum(input: []const u8, position: Position) ParserResult(InputResult([]cons
     } } };
 }
 
-pub fn lex(input: []const u8, position: Position) ParserResult(struct { []const u8, Position }, Self) {
+pub fn lex(input: []const u8, position: Position) ParserResult(
+    struct { []const u8, Position },
+    Self,
+) {
     const lexers = .{
         lexNum,
     };
@@ -75,5 +81,7 @@ pub fn lex(input: []const u8, position: Position) ParserResult(struct { []const 
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
-    writer.print("Literal | {s}\n", .{self.value}) catch return error.CouldNotFormat;
+    writer.print("Literal | {s}\n", .{self.value}) catch {
+        return error.CouldNotFormat;
+    };
 }

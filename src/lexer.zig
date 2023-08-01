@@ -72,7 +72,12 @@ pub fn lexSkip(input: []const u8, position: Position) InputResult([]const u8) {
         }
 
         // Skip whitespace
-        if (mem.containsAtLeast(u8, whitespaces, 1, &[_]u8{input_[0]})) {
+        if (mem.containsAtLeast(
+            u8,
+            whitespaces,
+            1,
+            &[_]u8{input_[0]},
+        )) {
             if (input_[0] == '\n') {
                 position_.column = 0;
                 position_.line += 1;
@@ -92,7 +97,14 @@ pub fn lexSkip(input: []const u8, position: Position) InputResult([]const u8) {
     return .{ input_, position_ };
 }
 
-pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(Token)) ParserResult(void, void) {
+pub fn lex(
+    allocator: mem.Allocator,
+    input: []const u8,
+    tokens: *std.ArrayList(Token),
+) ParserResult(
+    void,
+    void,
+) {
     var input_ = input;
 
     var position = Position{
@@ -126,17 +138,25 @@ pub fn lex(allocator: mem.Allocator, input: []const u8, tokens: *std.ArrayList(T
             }
         } else {
             var message = std.ArrayList(u8).init(allocator);
-            message.appendSlice("Invalid token") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+            message.appendSlice("Invalid token") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
 
             return .{ .err = .{ .invalid_input = .{ .message = message } } };
         };
 
-        tokens.append(token) catch return .{ .err = .{ .allocation_failed = void{} } };
+        tokens.append(token) catch {
+            return .{ .err = .{ .allocation_failed = void{} } };
+        };
     }
 
     if (position.index != input.len) {
         var message = std.ArrayList(u8).init(allocator);
-        message.appendSlice("Index does not match input size") catch return .{ .err = .{ .allocation_failed = void{} } };
+
+        message.appendSlice("Index does not match input size") catch {
+            return .{ .err = .{ .allocation_failed = void{} } };
+        };
 
         return .{ .err = .{ .invalid_input = .{ .message = message } } };
     }

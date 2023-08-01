@@ -15,6 +15,7 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
+        \\id x = x;
     ;
 
     const stdout = io.getStdOut();
@@ -49,7 +50,10 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Bindings Map ---\n");
 
-    const bind_map = switch (BindMap.map(allocator, tokens.items)) {
+    const bind_map = switch (BindMap.map(
+        allocator,
+        tokens.items,
+    )) {
         .ok => |x| x[1],
         .err => |e| {
             try e.format(stdout_writer);
@@ -65,7 +69,10 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast = switch (expr.File.parse(allocator, tokens.items)) {
+    var ast = switch (expr.File.parse(
+        allocator,
+        tokens.items,
+    )) {
         .ok => |x| x[1],
         .err => return error.ASTError,
     };

@@ -21,7 +21,10 @@ const puctuations = [_][]const u8{
 
 value: []const u8,
 
-pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]const u8), Self) {
+pub fn lex(input: []const u8, position: Position) ParserResult(
+    InputResult([]const u8),
+    Self,
+) {
     var input_ = input;
     var position_ = position;
 
@@ -34,7 +37,9 @@ pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]con
             position_.column += punct.len;
             position_.index += punct.len;
 
-            return .{ .ok = .{ .{ input_, position_ }, Self{ .value = value } } };
+            return .{ .ok = .{ .{ input_, position_ }, Self{
+                .value = value,
+            } } };
         }
     }
 
@@ -42,5 +47,7 @@ pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]con
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
-    writer.print("Punct   | {s}\n", .{self.value}) catch return error.CouldNotFormat;
+    writer.print("Punct   | {s}\n", .{self.value}) catch {
+        return error.CouldNotFormat;
+    };
 }

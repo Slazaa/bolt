@@ -25,7 +25,10 @@ pub const Literal = union(enum) {
         };
     }
 
-    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult([]const Token, Self) {
+    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
+        []const Token,
+        Self,
+    ) {
         var input_ = input;
 
         const parsers = .{

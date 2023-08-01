@@ -26,7 +26,11 @@ const InvalidInputError = struct {
 
     pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
         if (self.message) |message| {
-            writer.print("Invalid input: {s}\n", .{message.items}) catch return error.CouldNotFormat;
+            writer.print("Invalid input: {s}\n", .{
+                message.items,
+            }) catch {
+                return error.CouldNotFormat;
+            };
         } else {
             writer.writeAll("Invalid input") catch return error.CouldNotFormat;
         }
@@ -48,7 +52,9 @@ pub const Error = union(enum) {
 
     pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
         switch (self) {
-            .allocation_failed => writer.writeAll("Allocation failed") catch return error.CouldNotFormat,
+            .allocation_failed => writer.writeAll("Allocation failed") catch {
+                return error.CouldNotFormat;
+            },
             .invalid_input => |x| try x.format(writer),
         }
     }

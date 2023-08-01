@@ -18,17 +18,24 @@ const Self = @This();
 
 value: []const u8,
 
-pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]const u8), Self) {
+pub fn lex(input: []const u8, position: Position) ParserResult(
+    InputResult([]const u8),
+    Self,
+) {
     var input_ = input;
     var position_ = position;
 
-    if (input_.len == 0 or (!ascii.isAlphabetic(input_[0]) and input_[0] != '_')) {
+    if (input_.len == 0 or
+        (!ascii.isAlphabetic(input_[0]) and input_[0] != '_'))
+    {
         return .{ .err = .{ .invalid_input = .{ .message = null } } };
     }
 
     input_ = input_[1..];
 
-    while (input_.len != 0 and (ascii.isAlphanumeric(input_[0]) or input[0] == '_')) {
+    while (input_.len != 0 and
+        (ascii.isAlphanumeric(input_[0]) or input_[0] == '_'))
+    {
         input_ = input_[1..];
     }
 
@@ -43,5 +50,7 @@ pub fn lex(input: []const u8, position: Position) ParserResult(InputResult([]con
 }
 
 pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
-    writer.print("Ident   | {s}\n", .{self.value}) catch return error.CouldNotFormat;
+    writer.print("Ident   | {s}\n", .{self.value}) catch {
+        return error.CouldNotFormat;
+    };
 }
