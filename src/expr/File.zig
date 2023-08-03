@@ -14,7 +14,7 @@ const Token = lexer.Token;
 
 const ParserResult = parser.Result;
 
-const Bind = @import("../Bind.zig");
+const Bind = @import("Bind.zig");
 
 const Self = @This();
 

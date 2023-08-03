@@ -3,16 +3,16 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const lexer = @import("lexer.zig");
+const lexer = @import("../lexer.zig");
 
-const FormatError = @import("expr.zig").FormatError;
+const FormatError = @import("../expr.zig").FormatError;
 
-const Expr = @import("expr.zig").Expr;
-const Ident = @import("expr.zig").Ident;
+const Expr = @import("../expr.zig").Expr;
+const Ident = @import("../expr.zig").Ident;
 
 const Token = lexer.Token;
 
-const ParserResult = @import("parser.zig").Result;
+const ParserResult = @import("../parser.zig").Result;
 
 const Self = @This();
 
