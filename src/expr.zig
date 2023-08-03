@@ -84,9 +84,21 @@ pub const Expr = union(enum) {
         depth: usize,
     ) FormatError!void {
         switch (self) {
-            .file => |x| try x.format(allocator, writer, depth),
-            .ident => |x| try x.format(allocator, writer, depth),
-            .literal => |x| try x.format(allocator, writer, depth),
+            .file => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
+            .ident => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
+            .literal => |x| try x.format(
+                allocator,
+                writer,
+                depth,
+            ),
         }
     }
 };

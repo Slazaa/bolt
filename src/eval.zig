@@ -17,8 +17,6 @@ pub fn eval(
     file: File,
     input: []const u8,
 ) !T {
-    _ = file;
-
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 

@@ -18,7 +18,10 @@ pub fn main() !void {
     ;
 
     const stdout = io.getStdOut();
+    const stderr = io.getStdErr();
+
     const stdout_writer = stdout.writer();
+    const stderr_writer = stderr.writer();
 
     try stdout_writer.writeAll("--- Input ---\n");
     try stdout_writer.print("{s}\n\n", .{input});
@@ -36,7 +39,7 @@ pub fn main() !void {
     switch (lexer.lex(allocator, input, &tokens)) {
         .ok => {},
         .err => |e| {
-            try e.format(stdout_writer);
+            try e.format(stderr_writer);
             e.deinit();
 
             return;
@@ -52,7 +55,7 @@ pub fn main() !void {
     const bind_map = switch (BindMap.map(allocator, tokens.items)) {
         .ok => |x| x[1],
         .err => |e| {
-            try e.format(stdout_writer);
+            try e.format(stderr_writer);
             e.deinit();
 
             return;
@@ -63,25 +66,37 @@ pub fn main() !void {
 
     try bind_map.format(stdout_writer);
 
-    try stdout_writer.writeAll("\n--- AST ---\n");
-
-    var ast = switch (expr.File.parse(
-        allocator,
-        tokens.items,
-    )) {
+    var expr_ = switch (expr.Expr.parse(allocator, tokens.items)) {
         .ok => |x| x[1],
-        .err => return error.ASTError,
+        .err => |e| {
+            try e.format(stderr_writer);
+            e.deinit();
+
+            return;
+        },
     };
 
-    defer ast.deinit();
+    expr_.deinit();
 
-    try ast.format(allocator, stdout_writer, 0);
+    // try stdout_writer.writeAll("\n--- AST ---\n");
 
-    try stdout_writer.writeAll("\n--- Eval ---\n");
+    // var ast = switch (expr.File.parse(
+    //     allocator,
+    //     tokens.items,
+    // )) {
+    //     .ok => |x| x[1],
+    //     .err => return error.ASTError,
+    // };
 
-    const eval_input = "pi";
-    const result = try eval.eval(f64, allocator, ast, eval_input);
+    // defer ast.deinit();
 
-    try stdout_writer.print("Input: {s}\n", .{eval_input});
-    try stdout_writer.print("Result: {}\n", .{result});
+    // try ast.format(allocator, stdout_writer, 0);
+
+    // try stdout_writer.writeAll("\n--- Eval ---\n");
+
+    // const eval_input = "pi";
+    // const result = try eval.eval(f64, allocator, ast, eval_input);
+
+    // try stdout_writer.print("Input: {s}\n", .{eval_input});
+    // try stdout_writer.print("Result: {}\n", .{result});
 }
