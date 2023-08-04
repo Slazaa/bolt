@@ -39,10 +39,10 @@ pub const Literal = union(enum) {
             NumLit.parse,
         };
 
-        const res = b: inline for (parsers) |p| {
+        const res = inline for (parsers) |p| {
             switch (p(allocator, input_)) {
-                .ok => |x| break :b .{ x[0], Self.from(x[1]) },
-                .err => {},
+                .ok => |x| break .{ x[0], Self.from(x[1]) },
+                .err => |e| e.deinit(),
             }
         } else {
             var message = std.ArrayList(u8).init(allocator);

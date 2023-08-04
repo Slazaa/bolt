@@ -11,6 +11,7 @@ const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
 
+pub const Bind = @import("expr/Bind.zig");
 pub const File = @import("expr/File.zig");
 pub const Ident = @import("expr/Ident.zig");
 pub const Literal = @import("expr/literal.zig").Literal;
@@ -56,9 +57,9 @@ pub const Expr = union(enum) {
             Ident.parse,
         };
 
-        const res = b: inline for (parsers) |parser| {
+        const res = inline for (parsers) |parser| {
             switch (parser(allocator, input_)) {
-                .ok => |x| break :b .{ x[0], Self.from(x[1]) },
+                .ok => |x| break .{ x[0], Self.from(x[1]) },
                 .err => |e| e.deinit(),
             }
         } else {

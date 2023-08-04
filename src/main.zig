@@ -66,37 +66,25 @@ pub fn main() !void {
 
     try bind_map.format(stdout_writer);
 
-    var expr_ = switch (expr.Expr.parse(allocator, tokens.items)) {
-        .ok => |x| x[1],
-        .err => |e| {
-            try e.format(stderr_writer);
-            e.deinit();
+    try stdout_writer.writeAll("\n--- AST ---\n");
 
-            return;
-        },
+    var ast = switch (expr.File.parse(
+        allocator,
+        tokens.items,
+    )) {
+        .ok => |x| x[1],
+        .err => return error.ASTError,
     };
 
-    expr_.deinit();
+    defer ast.deinit();
 
-    // try stdout_writer.writeAll("\n--- AST ---\n");
+    try ast.format(allocator, stdout_writer, 0);
 
-    // var ast = switch (expr.File.parse(
-    //     allocator,
-    //     tokens.items,
-    // )) {
-    //     .ok => |x| x[1],
-    //     .err => return error.ASTError,
-    // };
+    try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    // defer ast.deinit();
+    const eval_input = "pi";
+    const result = try eval.eval(f64, allocator, ast, eval_input);
 
-    // try ast.format(allocator, stdout_writer, 0);
-
-    // try stdout_writer.writeAll("\n--- Eval ---\n");
-
-    // const eval_input = "pi";
-    // const result = try eval.eval(f64, allocator, ast, eval_input);
-
-    // try stdout_writer.print("Input: {s}\n", .{eval_input});
-    // try stdout_writer.print("Result: {}\n", .{result});
+    try stdout_writer.print("Input: {s}\n", .{eval_input});
+    try stdout_writer.print("Result: {}\n", .{result});
 }
