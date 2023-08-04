@@ -4,10 +4,6 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
-const BindMap = @import("BindMap.zig");
-
-const eval = @import("eval.zig");
-const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
@@ -15,13 +11,11 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
+        \\id x = x;
     ;
 
     const stdout = io.getStdOut();
-    const stderr = io.getStdErr();
-
     const stdout_writer = stdout.writer();
-    const stderr_writer = stderr.writer();
 
     try stdout_writer.writeAll("--- Input ---\n");
     try stdout_writer.print("{s}\n\n", .{input});
@@ -36,55 +30,38 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    switch (lexer.lex(allocator, input, &tokens)) {
-        .ok => {},
-        .err => |e| {
-            try e.format(stderr_writer);
-            e.deinit();
-
-            return;
-        },
+    if (lexer.lex(input, &tokens)) |_| {
+        return error.LexerError;
     }
 
     for (tokens.items) |token| {
-        try token.format(stdout_writer);
+        token.format(stdout_writer);
     }
 
-    try stdout_writer.writeAll("\n--- Bindings Map ---\n");
+    // try stdout_writer.writeAll("\n--- AST ---\n");
 
-    const bind_map = switch (BindMap.map(allocator, tokens.items)) {
-        .ok => |x| x[1],
-        .err => |e| {
-            try e.format(stderr_writer);
-            e.deinit();
+    // var ast = switch (expr.File.parse(
+    //     allocator,
+    //     tokens.items,
+    // )) {
+    //     .ok => |x| x[1],
+    //     .err => return error.ASTError,
+    // };
 
-            return;
-        },
-    };
+    // defer ast.deinit();
 
-    defer bind_map.deinit();
+    // try ast.format(allocator, stdout_writer, 0);
 
-    try bind_map.format(stdout_writer);
+    // try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    try stdout_writer.writeAll("\n--- AST ---\n");
+    // const eval_input = "pi";
+    // const result = try eval.eval(
+    //     f64,
+    //     allocator,
+    //     ast,
+    //     eval_input,
+    // );
 
-    var ast = switch (expr.File.parse(
-        allocator,
-        tokens.items,
-    )) {
-        .ok => |x| x[1],
-        .err => return error.ASTError,
-    };
-
-    defer ast.deinit();
-
-    try ast.format(allocator, stdout_writer, 0);
-
-    try stdout_writer.writeAll("\n--- Eval ---\n");
-
-    const eval_input = "pi";
-    const result = try eval.eval(f64, allocator, ast, eval_input);
-
-    try stdout_writer.print("Input: {s}\n", .{eval_input});
-    try stdout_writer.print("Result: {}\n", .{result});
+    // try stdout_writer.print("Input: {s}\n", .{eval_input});
+    // try stdout_writer.print("Result: {}\n", .{result});
 }

@@ -10,9 +10,9 @@ const parser = @import("../parser.zig");
 const Token = lexer.Token;
 const Ident = lexer.Ident;
 
-const ParserResult = parser.Result;
-
 const FormatError = expr.FormatError;
+
+const ParserResult = parser.Result;
 
 const Self = @This();
 
@@ -27,7 +27,7 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
     if (input_.len == 0) {
         var message = std.ArrayList(u8).init(allocator);
 
-        message.appendSlice("No input found") catch {
+        message.appendSlice("Expected Ident, found nothing") catch {
             return .{ .err = .{ .allocation_failed = void{} } };
         };
 

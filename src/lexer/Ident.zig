@@ -2,15 +2,6 @@ const std = @import("std");
 
 const ascii = std.ascii;
 const fs = std.fs;
-const mem = std.mem;
-
-const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
-
-const FormatError = lexer.FormatError;
-
-const ParserResult = parser.Result;
-const InputResult = parser.InputResult;
 
 const Position = @import("../Position.zig");
 
@@ -18,24 +9,26 @@ const Self = @This();
 
 value: []const u8,
 
-pub fn lex(input: []const u8, position: Position) ParserResult(
-    InputResult([]const u8),
-    Self,
-) {
-    var input_ = input;
-    var position_ = position;
+pub fn startsWithValidHeadChar(input: []const u8) bool {
+    return input.len != 0 and (ascii.isAlphabetic(input[0]) or input[0] == '_');
+}
 
-    if (input_.len == 0 or
-        (!ascii.isAlphabetic(input_[0]) and input_[0] != '_'))
-    {
-        return .{ .err = .{ .invalid_input = .{ .message = null } } };
+pub fn startsWithValidTailChar(input: []const u8) bool {
+    return input.len != 0 and
+        (ascii.isAlphanumeric(input[0]) or input[0] == '_');
+}
+
+pub fn lex(input: *[]const u8, position: *Position) ?Self {
+    var input_ = input.*;
+    var position_ = position.*;
+
+    if (!startsWithValidHeadChar(input_)) {
+        return null;
     }
 
     input_ = input_[1..];
 
-    while (input_.len != 0 and
-        (ascii.isAlphanumeric(input_[0]) or input_[0] == '_'))
-    {
+    while (startsWithValidTailChar(input_)) {
         input_ = input_[1..];
     }
 
@@ -44,13 +37,18 @@ pub fn lex(input: []const u8, position: Position) ParserResult(
     position_.column += token_size;
     position_.index += token_size;
 
-    return .{ .ok = .{ .{ input_, position_ }, Self{
-        .value = input[0..token_size],
-    } } };
+    const value = input.*[0..token_size];
+
+    input.* = input_;
+    position.* = position_;
+
+    return .{
+        .value = value,
+    };
 }
 
-pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
+pub fn format(self: Self, writer: fs.File.Writer) void {
     writer.print("Ident   | {s}\n", .{self.value}) catch {
-        return error.CouldNotFormat;
+        @panic("Could not format");
     };
 }

@@ -3,14 +3,6 @@ const std = @import("std");
 const ascii = std.ascii;
 const fs = std.fs;
 
-const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
-
-const FormatError = lexer.FormatError;
-
-const ParserResult = parser.Result;
-const InputResult = parser.InputResult;
-
 const Position = @import("../Position.zig");
 
 const Self = @This();
@@ -19,18 +11,15 @@ pub const Kind = enum {
     num,
 };
 
-value: []const u8,
 kind: Kind,
+value: []const u8,
 
-fn lexNum(input: []const u8, position: Position) ParserResult(
-    InputResult([]const u8),
-    Self,
-) {
-    var input_ = input;
-    var position_ = position;
+fn lexNum(input: *[]const u8, position: *Position) ?Self {
+    var input_ = input.*;
+    var position_ = position.*;
 
     if (input_.len == 0 or !ascii.isDigit(input_[0])) {
-        return .{ .err = .{ .invalid_input = .{ .message = null } } };
+        return null;
     }
 
     input_ = input_[1..];
@@ -42,12 +31,14 @@ fn lexNum(input: []const u8, position: Position) ParserResult(
     if (input_.len != 0 and input_[0] == '.') {
         input_ = input_[1..];
 
-        if (input_.len != 0 and ascii.isDigit(input_[0])) {
-            input_ = input_[1..];
+        if (input_.len == 0 or !ascii.isDigit(input_[0])) {
+            return null;
+        }
 
-            while (input_.len != 0 and ascii.isDigit(input_[0])) {
-                input_ = input_[1..];
-            }
+        input_ = input_[1..];
+
+        while (input_.len != 0 and ascii.isDigit(input_[0])) {
+            input_ = input_[1..];
         }
     }
 
@@ -56,32 +47,31 @@ fn lexNum(input: []const u8, position: Position) ParserResult(
     position_.column += token_size;
     position_.index += token_size;
 
-    return .{ .ok = .{ .{ input_, position_ }, Self{
-        .value = input[0..token_size],
+    const value = input.*[0..token_size];
+
+    input.* = input_;
+    position.* = position_;
+
+    return .{
         .kind = .num,
-    } } };
+        .value = value,
+    };
 }
 
-pub fn lex(input: []const u8, position: Position) ParserResult(
-    struct { []const u8, Position },
-    Self,
-) {
+pub fn lex(input: *[]const u8, position: *Position) ?Self {
     const lexers = .{
         lexNum,
     };
 
-    inline for (lexers) |l| {
-        switch (l(input, position)) {
-            .ok => |x| return .{ .ok = x },
-            .err => {},
+    return inline for (lexers) |lexer| {
+        if (lexer(input, position)) |literal| {
+            break literal;
         }
-    }
-
-    return .{ .err = .{ .invalid_input = .{ .message = null } } };
+    } else null;
 }
 
-pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
+pub fn format(self: Self, writer: fs.File.Writer) void {
     writer.print("Literal | {s}\n", .{self.value}) catch {
-        return error.CouldNotFormat;
+        @panic("Could not format");
     };
 }

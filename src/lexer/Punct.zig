@@ -3,51 +3,37 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
-
-const FormatError = lexer.FormatError;
-
-const ParserResult = parser.Result;
-const InputResult = parser.InputResult;
-
 const Position = @import("../Position.zig");
 
 const Self = @This();
 
-const puctuations = [_][]const u8{
-    "=", ";",
-};
-
 value: []const u8,
 
-pub fn lex(input: []const u8, position: Position) ParserResult(
-    InputResult([]const u8),
-    Self,
-) {
-    var input_ = input;
-    var position_ = position;
+pub fn lex(input: *[]const u8, position: *Position) ?Self {
+    const puncts = [_][]const u8{
+        "=", ";",
+    };
 
-    for (puctuations) |punct| {
-        if (mem.startsWith(u8, input_, punct)) {
-            const value = input_[0..punct.len];
+    return for (puncts) |punct| {
+        const value = input.*[0..punct.len];
 
-            input_ = input_[punct.len..];
-
-            position_.column += punct.len;
-            position_.index += punct.len;
-
-            return .{ .ok = .{ .{ input_, position_ }, Self{
-                .value = value,
-            } } };
+        if (!mem.eql(u8, value, punct)) {
+            continue;
         }
-    }
 
-    return .{ .err = .{ .invalid_input = .{ .message = null } } };
+        input.* = input.*[punct.len..];
+
+        position.column += punct.len;
+        position.index += punct.len;
+
+        break .{
+            .value = value,
+        };
+    } else null;
 }
 
-pub fn format(self: Self, writer: fs.File.Writer) FormatError!void {
+pub fn format(self: Self, writer: fs.File.Writer) void {
     writer.print("Punct   | {s}\n", .{self.value}) catch {
-        return error.CouldNotFormat;
+        @panic("Could not format");
     };
 }

@@ -13,6 +13,7 @@ const Token = lexer.Token;
 
 pub const Bind = @import("expr/Bind.zig");
 pub const File = @import("expr/File.zig");
+pub const FnCall = @import("expr/FnCall.zig");
 pub const Ident = @import("expr/Ident.zig");
 pub const Literal = @import("expr/literal.zig").Literal;
 pub const NumLit = @import("expr/literal.zig").NumLit;
@@ -25,6 +26,7 @@ pub const Expr = union(enum) {
     const Self = @This();
 
     file: File,
+    fn_call: FnCall,
     ident: Ident,
     literal: Literal,
 
@@ -33,6 +35,7 @@ pub const Expr = union(enum) {
 
         return switch (T) {
             File => .{ .file = item },
+            FnCall => .{ .fn_call = item },
             Ident => .{ .ident = item },
             Literal => .{ .literal = item },
             else => @compileError("Expected Expr, found " ++ @typeName(T)),
@@ -54,6 +57,7 @@ pub const Expr = union(enum) {
 
         const parsers = .{
             Literal.parse,
+            FnCall.parse,
             Ident.parse,
         };
 
@@ -85,17 +89,7 @@ pub const Expr = union(enum) {
         depth: usize,
     ) FormatError!void {
         switch (self) {
-            .file => |x| try x.format(
-                allocator,
-                writer,
-                depth,
-            ),
-            .ident => |x| try x.format(
-                allocator,
-                writer,
-                depth,
-            ),
-            .literal => |x| try x.format(
+            inline else => |x| try x.format(
                 allocator,
                 writer,
                 depth,

@@ -9,7 +9,7 @@ const expr = @import("expr.zig");
 
 pub fn eval(comptime T: type, file: File, ident: Ident) !T {
     for (file.binds.items) |bind| {
-        if (mem.eql(u8, bind.ident.value.value, ident.value.value)) {
+        if (mem.eql(u8, bind.ident.value, ident.value.value)) {
             return expr.eval(T, file, bind.expr.*);
         }
     }

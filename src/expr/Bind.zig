@@ -8,9 +8,10 @@ const lexer = @import("../lexer.zig");
 const FormatError = @import("../expr.zig").FormatError;
 
 const Expr = @import("../expr.zig").Expr;
-const Ident = @import("../expr.zig").Ident;
+const IdentExpr = @import("../expr.zig").Ident;
 
 const Token = lexer.Token;
+const Ident = lexer.Ident;
 
 const ParserResult = @import("../parser.zig").Result;
 
@@ -38,44 +39,37 @@ pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
 ) {
     var input_ = input;
 
-    const ident = b: {
-        const res = switch (Ident.parse(allocator, input_)) {
-            .ok => |x| x,
-            .err => |e| {
-                e.deinit();
+    const ident = switch (input_[0]) {
+        .ident => |x| x,
+        else => {
+            var message = std.ArrayList(u8).init(allocator);
 
-                var message = std.ArrayList(u8).init(allocator);
+            message.appendSlice("Expected Ident") catch {
+                return .{ .err = .{ .allocation_failed = void{} } };
+            };
 
-                message.appendSlice("Expected Ident") catch {
-                    return .{ .err = .{ .allocation_failed = void{} } };
-                };
-
-                return .{ .err = .{ .invalid_input = .{
-                    .message = message,
-                } } };
-            },
-        };
-
-        input_ = res[0];
-
-        break :b res[1];
+            return .{ .err = .{ .invalid_input = .{
+                .message = message,
+            } } };
+        },
     };
+
+    input_ = input[1..];
 
     var args = std.ArrayList(Expr).init(allocator);
 
     const parsers = .{
-        Ident.parse,
+        IdentExpr.parse,
     };
 
-    arg_loop: while (true) {
+    while (true) {
         const res = b: inline for (parsers) |parser| {
             switch (parser(allocator, input_)) {
                 .ok => |x| break :b .{ x[0], Expr.from(x[1]) },
-                .err => |e| {
-                    e.deinit();
-                    break :arg_loop;
-                },
+                .err => |e| e.deinit(),
             }
+        } else {
+            break;
         };
 
         input_ = res[0];
@@ -205,15 +199,12 @@ pub fn format(
         return error.CouldNotFormat;
     };
 
-    writer.print("{s}    ident:\n", .{depth_tabs.items}) catch {
+    writer.print("{s}    ident: {s}\n", .{
+        depth_tabs.items,
+        self.ident.value,
+    }) catch {
         return error.CouldNotFormat;
     };
-
-    try self.ident.format(
-        allocator,
-        writer,
-        depth + 2,
-    );
 
     writer.print("{s}    args: [\n", .{depth_tabs.items}) catch {
         return error.CouldNotFormat;
