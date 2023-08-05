@@ -12,6 +12,7 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
+        \\id x = x;
     ;
 
     const stdout = io.getStdOut();

@@ -142,7 +142,5 @@ pub fn format(
         depth + 2,
     );
 
-    try fmt.print(writer, "{s}}}\n", .{
-        depth_tabs.items,
-    });
+    try fmt.print(writer, "{s}}}\n", .{depth_tabs.items});
 }
