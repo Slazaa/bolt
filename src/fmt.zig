@@ -4,16 +4,25 @@ const fs = std.fs;
 
 const Writer = fs.File.Writer;
 
-pub fn addDepth(buffer: *std.ArrayList(u8), depth: usize) void {
+pub const Error = error{
+    AllocationFailed,
+    PrintingFailed,
+};
+
+pub fn addDepth(buffer: *std.ArrayList(u8), depth: usize) Error!void {
     for (0..depth) |_| {
         buffer.appendSlice("    ") catch {
-            @panic("Coult nod append depth");
+            return Error.AllocationFailed;
         };
     }
 }
 
-pub fn print(writer: Writer, comptime format: []const u8, args: anytype) void {
+pub fn print(
+    writer: Writer,
+    comptime format: []const u8,
+    args: anytype,
+) Error!void {
     writer.print(format, args) catch {
-        @panic("Coult not print");
+        return Error.PrintingFailed;
     };
 }

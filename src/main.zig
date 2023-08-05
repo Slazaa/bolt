@@ -4,6 +4,7 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
+const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
@@ -33,27 +34,29 @@ pub fn main() !void {
     defer tokens.deinit();
 
     if (lexer.lex(input, &tokens)) |err| {
-        err.format(stderr_writer);
+        try err.format(stderr_writer);
         return error.LexerError;
     }
 
     for (tokens.items) |token| {
-        token.format(allocator, stdout_writer, 0);
+        try token.format(allocator, stdout_writer, 0);
     }
 
-    // try stdout_writer.writeAll("\n--- AST ---\n");
+    try stdout_writer.writeAll("\n--- AST ---\n");
 
-    // var ast = switch (expr.File.parse(
-    //     allocator,
-    //     tokens.items,
-    // )) {
-    //     .ok => |x| x[1],
-    //     .err => return error.ASTError,
-    // };
+    var ast = switch (expr.parse(allocator, tokens.items)) {
+        .ok => |x| x,
+        .err => |e| {
+            try e.format(stderr_writer);
+            e.deinit();
 
-    // defer ast.deinit();
+            return;
+        },
+    };
 
-    // try ast.format(allocator, stdout_writer, 0);
+    defer ast.deinit();
+
+    try ast.format(allocator, stdout_writer, 0);
 
     // try stdout_writer.writeAll("\n--- Eval ---\n");
 

@@ -4,71 +4,48 @@ const ascii = std.ascii;
 const fs = std.fs;
 const mem = std.mem;
 
+const fmt = @import("../../fmt.zig");
+
 const expr = @import("../../expr.zig");
 const lexer = @import("../../lexer.zig");
-const parser = @import("../../parser.zig");
 
-const FormatError = expr.FormatError;
+const Error = expr.Error;
+const Result = expr.Result;
+const InvalidInput = expr.InvalidInputError;
 
 const Token = lexer.Token;
 const Literal = lexer.Literal;
-
-const ParserResult = parser.Result;
 
 const Self = @This();
 
 value: Literal,
 
-pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
-    []const Token,
-    Self,
-) {
-    var input_ = input;
-
-    if (input_.len == 0) {
-        var message = std.ArrayList(u8).init(allocator);
-
-        message.appendSlice("Expected NumLit") catch {
-            return .{ .err = .{ .allocation_failed = void{} } };
-        };
-
-        return .{ .err = .{ .invalid_input = .{ .message = message } } };
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+    if (input.len == 0) {
+        return .{ .err = Error.from(InvalidInput.init(
+            allocator,
+            "Expected NumLit, found nothing",
+        )) };
     }
 
-    const literal = b: {
-        switch (input_[0]) {
-            .literal => |x| {
-                if (x.kind != .num) {
-                    var message = std.ArrayList(u8).init(allocator);
-
-                    message.appendSlice("Expected NumLit") catch {
-                        return .{ .err = .{ .allocation_failed = void{} } };
-                    };
-
-                    return .{ .err = .{ .invalid_input = .{
-                        .message = message,
-                    } } };
-                }
-
-                break :b x;
-            },
-            else => {
-                var message = std.ArrayList(u8).init(allocator);
-
-                message.appendSlice("Expected NumLit") catch {
-                    return .{ .err = .{ .allocation_failed = void{} } };
-                };
-
-                return .{ .err = .{ .invalid_input = .{
-                    .message = message,
-                } } };
-            },
-        }
+    const value = switch (input.*[0]) {
+        .literal => |x| if (x.kind != .num) {
+            return .{ .err = Error.from(InvalidInput.init(
+                allocator,
+                "Expected NumLit",
+            )) };
+        } else x,
+        else => return .{ .err = Error.from(InvalidInput.init(
+            allocator,
+            "Expected NumLit",
+        )) },
     };
 
-    return .{ .ok = .{ input[1..], Self{
-        .value = literal,
-    } } };
+    input.* = input.*[1..];
+
+    return .{ .ok = .{
+        .value = value,
+    } };
 }
 
 pub fn format(
@@ -76,26 +53,20 @@ pub fn format(
     allocator: mem.Allocator,
     writer: fs.File.Writer,
     depth: usize,
-) FormatError!void {
+) fmt.Error!void {
     var depth_tabs = std.ArrayList(u8).init(allocator);
     defer depth_tabs.deinit();
 
-    for (0..depth) |_| {
-        depth_tabs.appendSlice("    ") catch return error.CouldNotFormat;
-    }
+    try fmt.addDepth(&depth_tabs, depth);
 
-    writer.print("{s}NumLit {{\n", .{depth_tabs.items}) catch {
-        return error.CouldNotFormat;
-    };
+    try fmt.print(writer, "{s}NumLit {{\n", .{
+        depth_tabs.items,
+    });
 
-    writer.print("{s}    value: {s}\n", .{
+    try fmt.print(writer, "{s}    value: {s}\n", .{
         depth_tabs.items,
         self.value.value,
-    }) catch {
-        return error.CouldNotFormat;
-    };
+    });
 
-    writer.print("{s}}}\n", .{depth_tabs.items}) catch {
-        return error.CouldNotFormat;
-    };
+    try fmt.print(writer, "{s}}}\n", .{depth_tabs.items});
 }

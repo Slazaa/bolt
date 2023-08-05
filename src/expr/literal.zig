@@ -3,17 +3,18 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
+const fmt = @import("../fmt.zig");
+
 const expr = @import("../expr.zig");
 const lexer = @import("../lexer.zig");
-const parser = @import("../parser.zig");
 
-const FormatError = expr.FormatError;
+const Error = expr.Error;
+const Result = expr.Result;
+const InvalidInputError = expr.InvalidInputError;
 
 const Token = lexer.Token;
 
-const ParserResult = parser.Result;
-
-pub const NumLit = @import("literal/NumLit.zig");
+const NumLit = @import("literal/NumLit.zig");
 
 pub const Literal = union(enum) {
     const Self = @This();
@@ -29,35 +30,24 @@ pub const Literal = union(enum) {
         };
     }
 
-    pub fn parse(allocator: mem.Allocator, input: []const Token) ParserResult(
-        []const Token,
-        Self,
-    ) {
-        var input_ = input;
-
+    pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
         const parsers = .{
             NumLit.parse,
         };
 
-        const res = inline for (parsers) |p| {
-            switch (p(allocator, input_)) {
-                .ok => |x| break .{ x[0], Self.from(x[1]) },
+        const literal = inline for (parsers) |parser| {
+            switch (parser(allocator, input)) {
+                .ok => |x| break Self.from(x),
                 .err => |e| e.deinit(),
             }
         } else {
-            var message = std.ArrayList(u8).init(allocator);
-
-            message.appendSlice("Coult not parse Literal") catch {
-                return .{ .err = .{ .allocation_failed = void{} } };
-            };
-
-            return .{ .err = .{ .invalid_input = .{ .message = message } } };
+            return .{ .err = Error.from(InvalidInputError.init(
+                allocator,
+                "Could not parse Literal",
+            )) };
         };
 
-        input_ = res[0];
-        const literal = res[1];
-
-        return .{ .ok = .{ input_, literal } };
+        return .{ .ok = literal };
     }
 
     pub fn format(
@@ -65,9 +55,9 @@ pub const Literal = union(enum) {
         allocator: mem.Allocator,
         writer: fs.File.Writer,
         depth: usize,
-    ) FormatError!void {
+    ) fmt.Error!void {
         switch (self) {
-            .num => |x| try x.format(allocator, writer, depth),
+            inline else => |x| try x.format(allocator, writer, depth),
         }
     }
 };

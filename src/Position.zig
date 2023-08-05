@@ -26,32 +26,32 @@ pub fn format(
     allocator: mem.Allocator,
     writer: Writer,
     depth: usize,
-) void {
+) fmt.Error!void {
     var depth_tabs = std.ArrayList(u8).init(allocator);
     defer depth_tabs.deinit();
 
-    fmt.addDepth(&depth_tabs, depth);
+    try fmt.addDepth(&depth_tabs, depth);
 
-    fmt.print(writer, "{s}Position: {{\n", .{
+    try fmt.print(writer, "{s}Position: {{\n", .{
         depth_tabs.items,
     });
 
-    fmt.print(writer, "{s}    line: {}\n", .{
+    try fmt.print(writer, "{s}    line: {}\n", .{
         depth_tabs.items,
         self.line,
     });
 
-    fmt.print(writer, "{s}    column: {}\n", .{
+    try fmt.print(writer, "{s}    column: {}\n", .{
         depth_tabs.items,
         self.column,
     });
 
-    fmt.print(writer, "{s}    index: {}\n", .{
+    try fmt.print(writer, "{s}    index: {}\n", .{
         depth_tabs.items,
         self.index,
     });
 
-    fmt.print(writer, "{s}}}\n", .{
+    try fmt.print(writer, "{s}}}\n", .{
         depth_tabs.items,
     });
 }

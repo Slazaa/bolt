@@ -19,8 +19,8 @@ pub const InvalidTokenError = struct {
 
     position: Position,
 
-    pub fn format(self: Self, writer: Writer) void {
-        fmt.print(writer, "Invalid token at {}:{}\n", .{
+    pub fn format(self: Self, writer: Writer) fmt.Error!void {
+        try fmt.print(writer, "Invalid token at {}:{}\n", .{
             self.position.line,
             self.position.column,
         });
@@ -33,8 +33,8 @@ pub const InvalidIndexingError = struct {
     expected: usize,
     found: usize,
 
-    pub fn format(self: Self, writer: Writer) void {
-        fmt.print(
+    pub fn format(self: Self, writer: Writer) fmt.Error!void {
+        try fmt.print(
             writer,
             "Index mismatch, expected {}, found {}\n",
             .{
@@ -51,9 +51,9 @@ pub const Error = union(enum) {
     invalid_token: InvalidTokenError,
     index_mismatch: InvalidIndexingError,
 
-    pub fn format(self: Self, writer: Writer) void {
+    pub fn format(self: Self, writer: Writer) fmt.Error!void {
         switch (self) {
-            inline else => |x| x.format(writer),
+            inline else => |x| try x.format(writer),
         }
     }
 };
@@ -83,9 +83,9 @@ pub const Token = union(enum) {
         allocator: mem.Allocator,
         writer: Writer,
         depth: usize,
-    ) void {
+    ) fmt.Error!void {
         switch (self) {
-            inline else => |x| x.format(allocator, writer, depth),
+            inline else => |x| try x.format(allocator, writer, depth),
         }
     }
 };
