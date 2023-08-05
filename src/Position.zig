@@ -1,3 +1,12 @@
+const std = @import("std");
+
+const fs = std.fs;
+const mem = std.mem;
+
+const fmt = @import("fmt.zig");
+
+const Writer = fs.File.Writer;
+
 const Self = @This();
 
 line: usize,
@@ -10,4 +19,39 @@ pub fn default() Self {
         .column = 1,
         .index = 0,
     };
+}
+
+pub fn format(
+    self: Self,
+    allocator: mem.Allocator,
+    writer: Writer,
+    depth: usize,
+) void {
+    var depth_tabs = std.ArrayList(u8).init(allocator);
+    defer depth_tabs.deinit();
+
+    fmt.addDepth(&depth_tabs, depth);
+
+    fmt.print(writer, "{s}Position: {{\n", .{
+        depth_tabs.items,
+    });
+
+    fmt.print(writer, "{s}    line: {}\n", .{
+        depth_tabs.items,
+        self.line,
+    });
+
+    fmt.print(writer, "{s}    column: {}\n", .{
+        depth_tabs.items,
+        self.column,
+    });
+
+    fmt.print(writer, "{s}    index: {}\n", .{
+        depth_tabs.items,
+        self.index,
+    });
+
+    fmt.print(writer, "{s}}}\n", .{
+        depth_tabs.items,
+    });
 }

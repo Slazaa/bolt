@@ -11,11 +11,13 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
-        \\id x = x;
     ;
 
     const stdout = io.getStdOut();
+    const stderr = io.getStdErr();
+
     const stdout_writer = stdout.writer();
+    const stderr_writer = stderr.writer();
 
     try stdout_writer.writeAll("--- Input ---\n");
     try stdout_writer.print("{s}\n\n", .{input});
@@ -30,12 +32,13 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    if (lexer.lex(input, &tokens)) |_| {
+    if (lexer.lex(input, &tokens)) |err| {
+        err.format(stderr_writer);
         return error.LexerError;
     }
 
     for (tokens.items) |token| {
-        token.format(stdout_writer);
+        token.format(allocator, stdout_writer, 0);
     }
 
     // try stdout_writer.writeAll("\n--- AST ---\n");

@@ -3,6 +3,10 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
+const Writer = fs.File.Writer;
+
+const fmt = @import("fmt.zig");
+
 const Position = @import("Position.zig");
 
 pub const Ident = @import("lexer/Ident.zig");
@@ -11,12 +15,47 @@ pub const Literal = @import("lexer/Literal.zig");
 pub const Punct = @import("lexer/Punct.zig");
 
 pub const InvalidTokenError = struct {
+    const Self = @This();
+
     position: Position,
+
+    pub fn format(self: Self, writer: Writer) void {
+        fmt.print(writer, "Invalid token at {}:{}\n", .{
+            self.position.line,
+            self.position.column,
+        });
+    }
+};
+
+pub const InvalidIndexingError = struct {
+    const Self = @This();
+
+    expected: usize,
+    found: usize,
+
+    pub fn format(self: Self, writer: Writer) void {
+        fmt.print(
+            writer,
+            "Index mismatch, expected {}, found {}\n",
+            .{
+                self.expected,
+                self.found,
+            },
+        );
+    }
 };
 
 pub const Error = union(enum) {
+    const Self = @This();
+
     invalid_token: InvalidTokenError,
-    invalid_indexing: void,
+    index_mismatch: InvalidIndexingError,
+
+    pub fn format(self: Self, writer: Writer) void {
+        switch (self) {
+            inline else => |x| x.format(writer),
+        }
+    }
 };
 
 pub const Token = union(enum) {
@@ -39,9 +78,14 @@ pub const Token = union(enum) {
         };
     }
 
-    pub fn format(self: Self, writer: fs.File.Writer) void {
+    pub fn format(
+        self: Self,
+        allocator: mem.Allocator,
+        writer: Writer,
+        depth: usize,
+    ) void {
         switch (self) {
-            inline else => |x| x.format(writer),
+            inline else => |x| x.format(allocator, writer, depth),
         }
     }
 };
@@ -94,12 +138,10 @@ fn lexSkip(input: *[]const u8, position: *Position) void {
         skipComment(input, position);
         skipWhitespaces(input, position);
 
-        if (old_input.len == input.len and old_input.ptr == input.ptr) {
+        if (mem.eql(u8, old_input, input.*)) {
             break;
         }
     }
-
-    return;
 }
 
 pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ?Error {
@@ -128,7 +170,10 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ?Error {
     }
 
     if (position.index != input.len) {
-        return .invalid_indexing;
+        return .{ .index_mismatch = .{
+            .expected = input.len,
+            .found = position.index,
+        } };
     }
 
     return null;

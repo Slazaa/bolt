@@ -4,9 +4,6 @@ const fs = std.fs;
 const io = std.io;
 const mem = std.mem;
 
-const ParserResult = @import("parser.zig").Result;
-const Parser = @import("parser.zig").Parser;
-
 const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
@@ -17,10 +14,6 @@ pub const FnCall = @import("expr/FnCall.zig");
 pub const Ident = @import("expr/Ident.zig");
 pub const Literal = @import("expr/literal.zig").Literal;
 pub const NumLit = @import("expr/literal.zig").NumLit;
-
-pub const FormatError = error{
-    CouldNotFormat,
-};
 
 pub const Expr = union(enum) {
     const Self = @This();
