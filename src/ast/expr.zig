@@ -59,8 +59,8 @@ pub const Expr = union(enum) {
     pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Expr) {
         const parsers = .{
             Literal.parse,
-            FnCall.parse,
             FnDecl.parse,
+            FnCall.parse,
             Ident.parse,
         };
 

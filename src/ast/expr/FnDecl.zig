@@ -24,10 +24,12 @@ const Ident = lexer.Ident;
 const Self = @This();
 
 allocator: mem.Allocator,
-arg: Ident,
+args: std.ArrayList(Ident),
 expr: *Expr,
 
 pub fn deinit(self: Self) void {
+    self.args.deinit();
+
     self.expr.deinit();
     self.allocator.destroy(self.expr);
 }
@@ -35,24 +37,38 @@ pub fn deinit(self: Self) void {
 pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     var input_ = input.*;
 
-    if (input_.len == 0) {
+    var args = std.ArrayList(Ident).init(allocator);
+
+    while (true) {
+        if (input_.len == 0) {
+            break;
+        }
+
+        const arg = switch (input_[0]) {
+            .ident => |x| x,
+            else => break,
+        };
+
+        args.append(arg) catch {
+            args.deinit();
+            @panic("Allocation failed");
+        };
+
+        input_ = input_[1..];
+    }
+
+    if (args.items.len == 0) {
+        args.deinit();
+
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
-            "Expected Ident, found nothing",
+            "Expected at least 1 arg, found nothing",
         )) };
     }
 
-    const arg = switch (input_[0]) {
-        .ident => |x| x,
-        else => return .{ .err = Error.from(InvalidInputError.init(
-            allocator,
-            "Expected Ident",
-        )) },
-    };
-
-    input_ = input_[1..];
-
     if (input_.len == 0) {
+        args.deinit();
+
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
             "Expected '->', found nothing",
@@ -61,12 +77,16 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 
     switch (input_[0]) {
         .punct => |x| if (!mem.eql(u8, x.value, "->")) {
+            args.deinit();
+
             return .{ .err = Error.from(InvalidInputError.init(
                 allocator,
                 "Expected '->'",
             )) };
         },
         else => {
+            args.deinit();
+
             return .{ .err = Error.from(InvalidInputError.init(
                 allocator,
                 "Expected '->'",
@@ -79,7 +99,10 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     const expr_ = b: {
         const res = switch (Expr.parse(allocator, &input_)) {
             .ok => |x| x,
-            .err => |e| return .{ .err = e },
+            .err => |e| {
+                args.deinit();
+                return .{ .err = e };
+            },
         };
 
         const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
@@ -92,7 +115,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 
     return .{ .ok = .{
         .allocator = allocator,
-        .arg = arg,
+        .args = args,
         .expr = expr_,
     } };
 }
@@ -112,9 +135,19 @@ pub fn format(
         depth_tabs.items,
     });
 
-    try fmt.print(writer, "{s}    arg: {s}\n", .{
+    try fmt.print(writer, "{s}    args: [\n", .{
         depth_tabs.items,
-        self.arg.value,
+    });
+
+    for (self.args.items) |arg| {
+        try fmt.print(writer, "{s}        {s}\n", .{
+            depth_tabs.items,
+            arg.value,
+        });
+    }
+
+    try fmt.print(writer, "{s}    ]\n", .{
+        depth_tabs.items,
     });
 
     try fmt.print(writer, "{s}    expr:\n", .{

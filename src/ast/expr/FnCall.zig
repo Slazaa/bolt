@@ -80,7 +80,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     if (args.items.len == 0) {
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
-            "Expected args, found nothing",
+            "Expected at least 1args, found nothing",
         )) };
     }
 

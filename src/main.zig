@@ -4,7 +4,7 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
-const ast_ = @import("ast.zig");
+const ast = @import("ast.zig");
 const eval = @import("eval.zig");
 const lexer = @import("lexer.zig");
 
@@ -46,7 +46,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast = switch (ast_.parse(allocator, tokens.items)) {
+    var ast_ = switch (ast.parse(allocator, tokens.items)) {
         .ok => |x| x,
         .err => |e| {
             try e.format(stderr_writer);
@@ -56,15 +56,20 @@ pub fn main() !void {
         },
     };
 
-    defer ast.deinit();
+    defer ast_.deinit();
 
-    try ast.format(allocator, stdout_writer, 0);
+    try ast_.format(allocator, stdout_writer, 0);
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
     const eval_input = "pi";
 
-    const result = switch (eval.eval(f64, allocator, ast, eval_input)) {
+    const result = switch (eval.eval(
+        f64,
+        allocator,
+        ast_,
+        eval_input,
+    )) {
         .ok => |x| x,
         .err => |e| {
             try e.format(stderr_writer);

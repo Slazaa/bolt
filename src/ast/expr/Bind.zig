@@ -120,9 +120,20 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
         break :b expr_;
     };
 
+    if (input.len == 0) {
+        allocator.destroy(expr_);
+        args.deinit();
+
+        return .{ .err = Error.from(InvalidInputError.init(
+            allocator,
+            "Expected ';', found nothing",
+        )) };
+    }
+
     switch (input_[0]) {
         .punct => |x| {
             if (!mem.eql(u8, x.value, ";")) {
+                allocator.destroy(expr_);
                 args.deinit();
 
                 return .{ .err = Error.from(InvalidInputError.init(
@@ -131,10 +142,15 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
                 )) };
             }
         },
-        else => return .{ .err = Error.from(InvalidInputError.init(
-            allocator,
-            "Expected ';'",
-        )) },
+        else => {
+            allocator.destroy(expr_);
+            args.deinit();
+
+            return .{ .err = Error.from(InvalidInputError.init(
+                allocator,
+                "Expected ';'",
+            )) };
+        },
     }
 
     input_ = input_[1..];
