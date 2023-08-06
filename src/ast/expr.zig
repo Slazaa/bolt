@@ -29,6 +29,7 @@ pub const NumLit = @import("expr/literal/NumLit.zig");
 pub const Expr = union(enum) {
     const Self = @This();
 
+    bind: Bind,
     file: File,
     fn_call: FnCall,
     fn_decl: FnDecl,
@@ -39,6 +40,7 @@ pub const Expr = union(enum) {
         const T = @TypeOf(item);
 
         return switch (T) {
+            Bind => .{ .bind = item },
             File => .{ .file = item },
             FnCall => .{ .fn_call = item },
             FnDecl => .{ .fn_decl = item },
@@ -50,6 +52,7 @@ pub const Expr = union(enum) {
 
     pub fn deinit(self: Self) void {
         switch (self) {
+            .bind => |x| x.deinit(),
             .file => |x| x.deinit(),
             .fn_decl => |x| x.deinit(),
             else => {},

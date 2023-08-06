@@ -19,12 +19,12 @@ const InvalidInputError = ast.InvalidInputError;
 const Expr = expr.Expr;
 
 const Token = lexer.Token;
-const Ident = lexer.Ident;
+const IdentTok = lexer.Ident;
 
 const Self = @This();
 
 allocator: mem.Allocator,
-args: std.ArrayList(Ident),
+args: std.ArrayList(IdentTok),
 expr: *Expr,
 
 pub fn deinit(self: Self) void {
@@ -37,7 +37,7 @@ pub fn deinit(self: Self) void {
 pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     var input_ = input.*;
 
-    var args = std.ArrayList(Ident).init(allocator);
+    var args = std.ArrayList(IdentTok).init(allocator);
 
     while (true) {
         if (input_.len == 0) {
