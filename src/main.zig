@@ -4,7 +4,8 @@ const debug = std.debug;
 const heap = std.heap;
 const io = std.io;
 
-const expr = @import("expr.zig");
+const ast_ = @import("ast.zig");
+const eval = @import("eval.zig");
 const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
@@ -12,7 +13,7 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
-        \\id x = x;
+        \\id = x -> x;
     ;
 
     const stdout = io.getStdOut();
@@ -45,7 +46,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast = switch (expr.parse(allocator, tokens.items)) {
+    var ast = switch (ast_.parse(allocator, tokens.items)) {
         .ok => |x| x,
         .err => |e| {
             try e.format(stderr_writer);
@@ -59,16 +60,20 @@ pub fn main() !void {
 
     try ast.format(allocator, stdout_writer, 0);
 
-    // try stdout_writer.writeAll("\n--- Eval ---\n");
+    try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    // const eval_input = "pi";
-    // const result = try eval.eval(
-    //     f64,
-    //     allocator,
-    //     ast,
-    //     eval_input,
-    // );
+    const eval_input = "pi";
 
-    // try stdout_writer.print("Input: {s}\n", .{eval_input});
-    // try stdout_writer.print("Result: {}\n", .{result});
+    const result = switch (eval.eval(f64, allocator, ast, eval_input)) {
+        .ok => |x| x,
+        .err => |e| {
+            try e.format(stderr_writer);
+            e.deinit();
+
+            return;
+        },
+    };
+
+    try stdout_writer.print("Input: {s}\n", .{eval_input});
+    try stdout_writer.print("Result: {}\n", .{result});
 }

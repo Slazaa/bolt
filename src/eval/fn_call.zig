@@ -2,10 +2,15 @@ const std = @import("std");
 
 const mem = std.mem;
 
-const File = @import("../expr.zig").File;
-const FnCall = @import("../expr.zig").FnCall;
+const eval_ = @import("../eval.zig");
+const expr = @import("../expr.zig");
 
-pub fn eval(comptime T: type, file: File, fn_call: FnCall) !T {
+const Result = eval_.Result;
+
+const File = expr.File;
+const FnCall = expr.FnCall;
+
+pub fn eval(comptime T: type, file: File, fn_call: FnCall) Result(T) {
     const bind = for (file.binds.items) |bind| {
         if (!mem.eql(u8, fn_call.ident.value, bind.ident.value)) {
             continue;

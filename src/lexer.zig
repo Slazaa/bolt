@@ -153,9 +153,9 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ?Error {
 
         const parsers = .{
             Keyword.lex,
+            Punct.lex,
             Literal.lex,
             Ident.lex,
-            Punct.lex,
         };
 
         const token = inline for (parsers) |parser| {

@@ -1,4 +1,6 @@
-const Literal = @import("../expr.zig").Literal;
+const ast = @import("../ast.zig");
+
+const Literal = ast.expr.Literal;
 
 const num_lit = @import("literal/num_lit.zig");
 

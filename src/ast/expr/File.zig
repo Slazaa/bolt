@@ -4,12 +4,13 @@ const fs = std.fs;
 const io = std.io;
 const mem = std.mem;
 
-const fmt = @import("../fmt.zig");
+const fmt = @import("../../fmt.zig");
 
-const expr = @import("../expr.zig");
-const lexer = @import("../lexer.zig");
+const lexer = @import("../../lexer.zig");
 
-const Result = expr.Result;
+const ast = @import("../../ast.zig");
+
+const Result = ast.Result;
 
 const Token = lexer.Token;
 

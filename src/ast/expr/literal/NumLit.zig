@@ -4,14 +4,15 @@ const ascii = std.ascii;
 const fs = std.fs;
 const mem = std.mem;
 
-const fmt = @import("../../fmt.zig");
+const fmt = @import("../../../fmt.zig");
 
-const expr = @import("../../expr.zig");
-const lexer = @import("../../lexer.zig");
+const lexer = @import("../../../lexer.zig");
 
-const Error = expr.Error;
-const Result = expr.Result;
-const InvalidInput = expr.InvalidInputError;
+const ast = @import("../../../ast.zig");
+
+const Error = ast.Error;
+const Result = ast.Result;
+const InvalidInput = ast.InvalidInputError;
 
 const Token = lexer.Token;
 const Literal = lexer.Literal;

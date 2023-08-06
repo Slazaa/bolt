@@ -3,14 +3,16 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const fmt = @import("../fmt.zig");
+const fmt = @import("../../fmt.zig");
 
-const expr = @import("../expr.zig");
-const lexer = @import("../lexer.zig");
+const lexer = @import("../../lexer.zig");
 
-const Error = expr.Error;
-const Result = expr.Result;
-const InvalidInputError = expr.InvalidInputError;
+const ast = @import("../../ast.zig");
+const expr = ast.expr;
+
+const Error = ast.Error;
+const Result = ast.Result;
+const InvalidInputError = ast.InvalidInputError;
 
 const Expr = expr.Expr;
 const Ident = expr.Ident;

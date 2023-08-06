@@ -17,7 +17,7 @@ end_pos: Position,
 
 pub fn lex(input: *[]const u8, position: *Position) ?Self {
     const puncts = [_][]const u8{
-        "=", ";",
+        "=", ";", "->",
     };
 
     const start_pos = position.*;

@@ -3,15 +3,19 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
-const fmt = @import("../fmt.zig");
+const Writer = fs.File.Writer;
 
-const expr = @import("../expr.zig");
-const lexer = @import("../lexer.zig");
+const fmt = @import("../../fmt.zig");
 
-const Result = expr.Result;
-const InvalidInputError = expr.InvalidInputError;
+const lexer = @import("../../lexer.zig");
 
-const Error = expr.Error;
+const ast = @import("../../ast.zig");
+const expr = ast.expr;
+
+const Error = ast.Error;
+const Result = ast.Result;
+const InvalidInputError = ast.InvalidInputError;
+
 const Expr = expr.Expr;
 const Ident = expr.Ident;
 
@@ -91,7 +95,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 pub fn format(
     self: Self,
     allocator: mem.Allocator,
-    writer: fs.File.Writer,
+    writer: Writer,
     depth: usize,
 ) fmt.Error!void {
     var depth_tabs = std.ArrayList(u8).init(allocator);
