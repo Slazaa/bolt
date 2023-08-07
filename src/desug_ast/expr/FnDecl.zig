@@ -1,11 +1,16 @@
 const std = @import("std");
 
+const fs = std.fs;
 const mem = std.mem;
+
+const Writer = fs.File.Writer;
+
+const fmt = @import("../../fmt.zig");
 
 const ast = @import("../../ast.zig");
 const lexer = @import("../../lexer.zig");
 
-const AstFnDecl = ast.FnDecl;
+const AstFnDecl = ast.expr.FnDecl;
 
 const IdentTok = lexer.Ident;
 
@@ -25,6 +30,66 @@ pub fn deinit(self: Self) void {
 }
 
 pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
-    _ = fn_decl;
-    _ = allocator;
+    if (fn_decl.args.items.len == 0) {
+        @panic("Expected at least 1 arg, found none");
+    }
+
+    const expr_ = allocator.create(Expr);
+
+    var last_fn_decl = null;
+
+    var i: isize = fn_decl.args.items.len - 1;
+
+    while (i >= 0) : (i -= 1) {
+        const arg = fn_decl.args.items[i];
+
+        if (last_fn_decl) |last_fn_decl_| {
+            expr_.* = Expr.from(last_fn_decl_);
+
+            last_fn_decl = .{
+                .allocator = allocator,
+                .arg = arg,
+                .expr_ = expr_,
+            };
+        } else {
+            expr_.* = Expr.desug(allocator, fn_decl.expr);
+
+            last_fn_decl = .{
+                .allocator = allocator,
+                .arg = arg,
+                .expr = expr_,
+            };
+        }
+    }
+
+    return last_fn_decl.?;
+}
+
+pub fn format(
+    self: Self,
+    allocator: mem.Allocator,
+    writer: Writer,
+    depth: usize,
+) fmt.Error!void {
+    var depth_tabs = std.ArrayList(u8).init(allocator);
+    defer depth_tabs.deinit();
+
+    try fmt.addDepth(&depth_tabs, depth);
+
+    try fmt.print(writer, "{s}FnDecl {{\n", .{
+        depth_tabs.items,
+    });
+
+    try fmt.print(writer, "{s}    arg: {s}", .{
+        depth_tabs.items,
+        self.arg.value,
+    });
+
+    try fmt.print(writer, "{s}    expr:\n", .{
+        depth_tabs.items,
+    });
+
+    try self.expr.format(allocator, writer, depth + 2);
+
+    try fmt.print(writer, "{s}}}\n", .{depth_tabs.items});
 }

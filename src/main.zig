@@ -5,6 +5,7 @@ const heap = std.heap;
 const io = std.io;
 
 const ast = @import("ast.zig");
+const desug = @import("desug.zig");
 const eval = @import("eval.zig");
 const lexer = @import("lexer.zig");
 
@@ -13,7 +14,6 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
-        \\id = x -> x;
     ;
 
     const stdout = io.getStdOut();
@@ -59,6 +59,13 @@ pub fn main() !void {
     defer ast_.deinit();
 
     try ast_.format(allocator, stdout_writer, 0);
+
+    try stdout_writer.writeAll("\n--- Desug ---\n");
+
+    var desug_ = desug.desug(allocator, ast_);
+    defer desug_.deinit();
+
+    try desug_.format(allocator, stdout_writer, 0);
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 

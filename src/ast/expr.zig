@@ -85,7 +85,7 @@ pub const Expr = union(enum) {
     pub fn format(
         self: Self,
         allocator: mem.Allocator,
-        writer: fs.File.Writer,
+        writer: Writer,
         depth: usize,
     ) fmt.Error!void {
         switch (self) {
