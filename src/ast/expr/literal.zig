@@ -3,6 +3,8 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 
+const Writer = fs.File.Writer;
+
 const fmt = @import("../../fmt.zig");
 
 const lexer = @import("../../lexer.zig");
@@ -54,7 +56,7 @@ pub const Literal = union(enum) {
     pub fn format(
         self: Self,
         allocator: mem.Allocator,
-        writer: fs.File.Writer,
+        writer: Writer,
         depth: usize,
     ) fmt.Error!void {
         switch (self) {

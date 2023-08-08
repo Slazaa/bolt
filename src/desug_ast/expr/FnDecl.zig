@@ -36,9 +36,9 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
 
     const expr_ = allocator.create(Expr);
 
-    var last_fn_decl = null;
+    var last_fn_decl: ?Self = null;
 
-    var i: isize = fn_decl.args.items.len - 1;
+    var i = fn_decl.args.items.len - 1;
 
     while (i >= 0) : (i -= 1) {
         const arg = fn_decl.args.items[i];
@@ -59,6 +59,10 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
                 .arg = arg,
                 .expr = expr_,
             };
+        }
+
+        if (i == 0) {
+            break;
         }
     }
 

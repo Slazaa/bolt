@@ -14,6 +14,9 @@ const AstExpr = ast.expr.Expr;
 pub const Bind = @import("expr/Bind.zig");
 pub const File = @import("expr/File.zig");
 pub const FnDecl = @import("expr/FnDecl.zig");
+pub const Ident = @import("expr/Ident.zig");
+pub const Literal = @import("expr/literal.zig").Literal;
+pub const NumLit = @import("expr/literal/NumLit.zig");
 
 pub const Expr = union(enum) {
     const Self = @This();
@@ -21,6 +24,7 @@ pub const Expr = union(enum) {
     bind: Bind,
     file: File,
     fn_decl: FnDecl,
+    literal: Literal,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
@@ -29,6 +33,8 @@ pub const Expr = union(enum) {
             Bind => .{ .bind = item },
             File => .{ .file = item },
             FnDecl => .{ .fn_decl = item },
+            Ident => .{ .ident = item },
+            Literal => .{ .lietral = item },
             else => @compileError("Expected expr, found " ++ @typeName(T)),
         }
     }
@@ -38,6 +44,7 @@ pub const Expr = union(enum) {
             .bind => |x| x.deinit(),
             .file => |x| x.deinit(),
             .fn_decl => |x| x.deinit(),
+            else => {},
         }
     }
 
@@ -45,8 +52,13 @@ pub const Expr = union(enum) {
         return switch (expr) {
             .bind => |x| Expr.from(Bind.desug(allocator, x)),
             .file => |x| Expr.from(File.desug(allocator, x)),
-            .fn_decl => |x| Expr.from(FnDecl.desug(allocator, x)),
-            else => @compileError("Not supported yet"),
+            .fn_decl => |x| Expr.from(FnDecl.desug(
+                allocator,
+                x,
+            )),
+            .ident => |x| Expr.from(Ident.desug(x)),
+            .literal => |x| Expr.from(Literal.desug(x)),
+            else => @panic("Not supported yet"),
         };
     }
 
