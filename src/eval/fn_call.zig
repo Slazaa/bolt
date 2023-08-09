@@ -22,14 +22,18 @@ pub fn eval(
 ) Result(T) {
     const func = switch (expr.eval(
         T,
+        allocator,
         file,
         fn_call.func.*,
     )) {
-        .fn_decl => |x| x,
-        else => return .{ .err = Error.from(InvalidInputError.init(
-            allocator,
-            "Expected FnDecl",
-        )) },
+        .ok => |x| switch (x) {
+            .fn_decl => |y| y,
+            else => return .{ .err = Error.from(InvalidInputError.init(
+                allocator,
+                "Expected FnDecl",
+            )) },
+        },
+        .err => |e| return .{ .err = e },
     };
 
     const expr_ = expr.eval(T, file, fn_call.expr.*);

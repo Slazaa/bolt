@@ -6,7 +6,7 @@ const ast_ = @import("ast.zig");
 
 const AstFile = ast_.expr.File;
 
-const expr = @import("desug_ast/expr.zig");
+const expr = @import("desug/expr.zig");
 
 const File = expr.File;
 
