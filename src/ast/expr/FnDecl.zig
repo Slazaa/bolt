@@ -96,19 +96,19 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 
     input_ = input_[1..];
 
-    const expr_ = b: {
-        const res = switch (Expr.parse(allocator, &input_)) {
-            .ok => |x| x,
-            .err => |e| {
-                args.deinit();
-                return .{ .err = e };
-            },
-        };
+    const expr_ = allocator.create(Expr) catch {
+        args.deinit();
+        @panic("Allocation failed");
+    };
 
-        const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
-        expr_.* = res;
+    expr_.* = switch (Expr.parse(allocator, &input_)) {
+        .ok => |x| x,
+        .err => |e| {
+            allocator.destroy(expr_);
+            args.deinit();
 
-        break :b expr_;
+            return .{ .err = e };
+        },
     };
 
     input.* = input_;

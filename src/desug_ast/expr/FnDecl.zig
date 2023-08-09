@@ -34,8 +34,6 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
         @panic("Expected at least 1 arg, found none");
     }
 
-    const expr_ = allocator.create(Expr);
-
     var last_fn_decl: ?Self = null;
 
     var i = fn_decl.args.items.len - 1;
@@ -44,15 +42,17 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
         const arg = fn_decl.args.items[i];
 
         if (last_fn_decl) |last_fn_decl_| {
+            const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
             expr_.* = Expr.from(last_fn_decl_);
 
             last_fn_decl = .{
                 .allocator = allocator,
                 .arg = arg,
-                .expr_ = expr_,
+                .expr = expr_,
             };
         } else {
-            expr_.* = Expr.desug(allocator, fn_decl.expr);
+            const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
+            expr_.* = Expr.desug(allocator, fn_decl.expr.*);
 
             last_fn_decl = .{
                 .allocator = allocator,
@@ -84,7 +84,7 @@ pub fn format(
         depth_tabs.items,
     });
 
-    try fmt.print(writer, "{s}    arg: {s}", .{
+    try fmt.print(writer, "{s}    arg: {s}\n", .{
         depth_tabs.items,
         self.arg.value,
     });

@@ -7,19 +7,12 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../../fmt.zig");
 
-const lexer = @import("../../lexer.zig");
-
 const ast = @import("../../ast.zig");
-const expr = ast.expr;
+const expr = @import("../expr.zig");
 
-const Error = ast.Error;
-const Result = ast.Result;
-const InvalidInputError = ast.InvalidInputError;
+const AstFnCall = ast.expr.FnCall;
 
 const Expr = expr.Expr;
-const Ident = expr.Ident;
-
-const Token = lexer.Token;
 
 const Self = @This();
 
@@ -35,45 +28,18 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
-    var input_ = input.*;
-
+pub fn desug(allocator: mem.Allocator, fn_call: AstFnCall) Self {
     const func = allocator.create(Expr) catch @panic("Allocation failed");
+    func.* = Expr.desug(allocator, fn_call.func.*);
 
-    func.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(func);
-            return .{ .err = e };
-        },
-    });
+    const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
+    expr_.* = Expr.desug(allocator, fn_call.expr.*);
 
-    const expr_ = allocator.create(Expr) catch {
-        func.deinit();
-        allocator.destroy(func);
-
-        @panic("Allocation failed");
-    };
-
-    expr_.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(expr_);
-
-            func.deinit();
-            allocator.destroy(func);
-
-            return .{ .err = e };
-        },
-    });
-
-    input.* = input_;
-
-    return .{ .ok = .{
+    return .{
         .allocator = allocator,
         .func = func,
         .expr = expr_,
-    } };
+    };
 }
 
 pub fn format(

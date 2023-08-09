@@ -103,27 +103,25 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
         )) },
     }
 
-    const expr_ = b: {
-        const res = switch (Expr.parse(allocator, &input_)) {
-            .ok => |x| x,
-            .err => |e| {
-                args.deinit();
-                return .{ .err = e };
-            },
-        };
+    const expr_ = allocator.create(Expr) catch {
+        args.deinit();
+        @panic("Allocation failed");
+    };
 
-        const expr_ = allocator.create(Expr) catch {
+    expr_.* = switch (Expr.parse(allocator, &input_)) {
+        .ok => |x| x,
+        .err => |e| {
+            allocator.destroy(expr_);
             args.deinit();
-            @panic("Allocation failed");
-        };
 
-        expr_.* = res;
-
-        break :b expr_;
+            return .{ .err = e };
+        },
     };
 
     if (input.len == 0) {
+        expr_.deinit();
         allocator.destroy(expr_);
+
         args.deinit();
 
         return .{ .err = Error.from(InvalidInputError.init(
@@ -135,7 +133,9 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     switch (input_[0]) {
         .punct => |x| {
             if (!mem.eql(u8, x.value, ";")) {
+                expr_.deinit();
                 allocator.destroy(expr_);
+
                 args.deinit();
 
                 return .{ .err = Error.from(InvalidInputError.init(
@@ -145,7 +145,9 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
             }
         },
         else => {
+            expr_.deinit();
             allocator.destroy(expr_);
+
             args.deinit();
 
             return .{ .err = Error.from(InvalidInputError.init(

@@ -3,22 +3,32 @@ const std = @import("std");
 const mem = std.mem;
 
 const eval_ = @import("../eval.zig");
-const expr = @import("../expr.zig");
+const ast = @import("../ast.zig");
 
+const InvalidInputError = eval_.InvalidInputError;
+const Error = eval_.Error;
 const Result = eval_.Result;
 
-const File = expr.File;
-const FnCall = expr.FnCall;
+const expr = @import("expr.zig");
 
-pub fn eval(comptime T: type, file: File, fn_call: FnCall) Result(T) {
-    const bind = for (file.binds.items) |bind| {
-        if (!mem.eql(u8, fn_call.ident.value, bind.ident.value)) {
-            continue;
-        }
+const File = ast.expr.File;
+const FnCall = ast.expr.FnCall;
 
-        break bind;
-    } else {
-        return error.IdentNotFound;
+pub fn eval(
+    comptime T: type,
+    allocator: mem.Allocator,
+    file: File,
+    fn_call: FnCall,
+) Result(T) {
+    const func = switch (expr.eval(T, file, fn_call.func.*)) {
+        .fn_decl => |x| x,
+        else => return .{ .err = Error.from(InvalidInputError.init(
+            allocator,
+            "Expected FnDecl",
+        )) },
     };
-    _ = bind;
+
+    const expr_ = expr.eval(T, file, fn_call.expr.*);
+    _ = expr_;
+    _ = func;
 }

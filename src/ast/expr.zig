@@ -54,6 +54,7 @@ pub const Expr = union(enum) {
         switch (self) {
             .bind => |x| x.deinit(),
             .file => |x| x.deinit(),
+            .fn_call => |x| x.deinit(),
             .fn_decl => |x| x.deinit(),
             else => {},
         }

@@ -34,13 +34,32 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     while (input.len != 0) {
         const bind = switch (Bind.parse(allocator, input)) {
             .ok => |x| x,
-            .err => |e| return .{ .err = e },
+            .err => |e| {
+                for (binds.items) |bind| {
+                    bind.deinit();
+                }
+
+                binds.deinit();
+
+                return .{ .err = e };
+            },
         };
 
-        binds.append(bind) catch @panic("Allocation failed");
+        binds.append(bind) catch {
+            bind.deinit();
+
+            for (binds.items) |bind_| {
+                bind_.deinit();
+            }
+
+            binds.deinit();
+
+            @panic("Allocation failed");
+        };
     }
 
     if (input.len != 0) {
+        binds.deinit();
         return .{ .err = .input_left };
     }
 

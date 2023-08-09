@@ -104,5 +104,5 @@ pub fn eval(
 
     defer expr_.deinit();
 
-    return eval_expr.eval(T, file, expr_);
+    return eval_expr.eval(T, allocator, file, expr_);
 }
