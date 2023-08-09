@@ -20,7 +20,11 @@ pub fn eval(
     file: File,
     fn_call: FnCall,
 ) Result(T) {
-    const func = switch (expr.eval(T, file, fn_call.func.*)) {
+    const func = switch (expr.eval(
+        T,
+        file,
+        fn_call.func.*,
+    )) {
         .fn_decl => |x| x,
         else => return .{ .err = Error.from(InvalidInputError.init(
             allocator,
