@@ -39,11 +39,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 
     var args = std.ArrayList(IdentTok).init(allocator);
 
-    while (true) {
-        if (input_.len == 0) {
-            break;
-        }
-
+    while (input_.len != 0) {
         const arg = switch (input_[0]) {
             .ident => |x| x,
             else => break,

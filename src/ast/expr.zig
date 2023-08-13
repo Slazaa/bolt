@@ -26,6 +26,8 @@ pub const Ident = @import("expr/Ident.zig");
 pub const Literal = @import("expr/literal.zig").Literal;
 pub const NumLit = @import("expr/literal/NumLit.zig");
 
+pub const parent = @import("parent.zig");
+
 pub const Expr = union(enum) {
     const Self = @This();
 
@@ -46,7 +48,7 @@ pub const Expr = union(enum) {
             FnDecl => .{ .fn_decl = item },
             Ident => .{ .ident = item },
             Literal => .{ .literal = item },
-            else => @compileError("Expected Expr, found " ++ @typeName(T)),
+            else => @panic("Expected Expr, found " ++ @typeName(T)),
         };
     }
 
@@ -64,20 +66,31 @@ pub const Expr = union(enum) {
         const parsers = .{
             Literal.parse,
             FnDecl.parse,
-            FnCall.parse,
             Ident.parse,
         };
 
-        const expr = inline for (parsers) |parser| {
-            switch (parser(allocator, input)) {
-                .ok => |x| break Self.from(x),
+        const expr = b: {
+            switch (FnCall.parse(allocator, input)) {
+                .ok => |x| break :b x,
                 .err => |e| e.deinit(),
             }
-        } else {
-            return .{ .err = Error.from(InvalidInputError.init(
-                allocator,
-                "Could not parse Expr",
-            )) };
+
+            switch (parent.parse(allocator, input)) {
+                .ok => |x| break :b x,
+                .err => |e| e.deinit(),
+            }
+
+            inline for (parsers) |parser| {
+                switch (parser(allocator, input)) {
+                    .ok => |x| break :b Self.from(x),
+                    .err => |e| e.deinit(),
+                }
+            } else {
+                return .{ .err = Error.from(InvalidInputError.init(
+                    allocator,
+                    "Could not parse Expr",
+                )) };
+            }
         };
 
         return .{ .ok = expr };

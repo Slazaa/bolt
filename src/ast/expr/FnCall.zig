@@ -10,14 +10,13 @@ const fmt = @import("../../fmt.zig");
 const lexer = @import("../../lexer.zig");
 
 const ast = @import("../../ast.zig");
-const expr = ast.expr;
 
 const Error = ast.Error;
 const Result = ast.Result;
 const InvalidInputError = ast.InvalidInputError;
 
-const Expr = expr.Expr;
-const Ident = expr.Ident;
+const Expr = ast.expr.Expr;
+const Ident = ast.expr.Ident;
 
 const Token = lexer.Token;
 
@@ -32,47 +31,47 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.func);
 
     self.expr.deinit();
-    self.allocator.destroy(self.expr);
+    self.allocator.destroy(self.func);
 }
 
 pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     var input_ = input.*;
 
-    const func = allocator.create(Expr) catch @panic("Allocation failed");
+    // const func = allocator.create(Expr) catch @panic("Allocation failed");
 
-    func.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(func);
-            return .{ .err = e };
-        },
-    });
+    // func.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
+    //     .ok => |x| x,
+    //     .err => |e| {
+    //         allocator.destroy(func);
+    //         return .{ .err = e };
+    //     },
+    // });
 
-    const expr_ = allocator.create(Expr) catch {
-        func.deinit();
-        allocator.destroy(func);
+    // const expr_ = allocator.create(Expr) catch {
+    //     func.deinit();
+    //     allocator.destroy(func);
 
-        @panic("Allocation failed");
-    };
+    //     @panic("Allocation failed");
+    // };
 
-    expr_.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(expr_);
+    // expr_.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
+    //     .ok => |x| x,
+    //     .err => |e| {
+    //         allocator.destroy(expr_);
 
-            func.deinit();
-            allocator.destroy(func);
+    //         func.deinit();
+    //         allocator.destroy(func);
 
-            return .{ .err = e };
-        },
-    });
+    //         return .{ .err = e };
+    //     },
+    // });
 
     input.* = input_;
 
     return .{ .ok = .{
         .allocator = allocator,
         .func = func,
-        .expr = expr_,
+        .expr = expr,
     } };
 }
 

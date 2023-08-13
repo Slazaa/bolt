@@ -26,7 +26,7 @@ pub fn format(
 ) fmt.Error!void {
     try fmt.print(writer, "Fn {{\n", .{});
 
-    try fmt.print(writer, "    arg: {s}", .{
+    try fmt.print(writer, "    arg: {s}\n", .{
         self.arg.value,
     });
 
