@@ -2,33 +2,46 @@ const std = @import("std");
 
 const mem = std.mem;
 
+const desug = @import("../desug.zig");
 const eval_ = @import("../eval.zig");
-const ast = @import("../ast.zig");
 
-const File = ast.expr.File;
-const Expr = ast.expr.Expr;
+const AstExpr = desug.expr.Expr;
+const AstFile = desug.expr.File;
 
 const Result = eval_.Result;
 
+const Scope = eval_.Scope;
+
 const fn_call = @import("fn_call.zig");
+const fn_decl = @import("fn_decl.zig");
 const ident = @import("ident.zig");
 const literal = @import("literal.zig");
 
+const Expr = @import("../expr.zig").Expr;
+
 pub fn eval(
-    comptime T: type,
     allocator: mem.Allocator,
-    file: File,
-    expr: Expr,
-) Result(T) {
+    file: AstFile,
+    scope: Scope,
+    expr: AstExpr,
+) Result(Expr) {
     return switch (expr) {
         .fn_call => |x| fn_call.eval(
-            T,
             allocator,
             file,
+            scope,
             x,
         ),
-        .ident => |x| ident.eval(T, file, x),
-        .literal => |x| .{ .ok = literal.eval(T, x) },
-        else => @panic("Not supported Expr"),
+        .fn_decl => |x| .{ .ok = .{ .@"fn" = fn_decl.eval(x) } },
+        .ident => |x| ident.eval(
+            allocator,
+            file,
+            scope,
+            x,
+        ),
+        .literal => |x| .{ .ok = literal.eval(x) },
+        inline else => |x| {
+            @panic("Not supported Expr, found " ++ @typeName(@TypeOf(x)));
+        },
     };
 }

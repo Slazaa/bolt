@@ -8,12 +8,16 @@ const Writer = fs.File.Writer;
 const fmt = @import("fmt.zig");
 
 const ast = @import("ast.zig");
+const desug = @import("desug.zig");
 const lexer = @import("lexer.zig");
 
-const Expr = ast.expr.Expr;
-const File = ast.expr.File;
+const AstExpr = ast.expr.Expr;
+
+const DesugFile = desug.expr.File;
 
 const eval_expr = @import("eval/expr.zig");
+
+const Expr = @import("expr.zig").Expr;
 
 const Token = lexer.Token;
 
@@ -82,12 +86,13 @@ pub fn Result(comptime T: type) type {
     };
 }
 
+pub const Scope = std.StringHashMap(Expr);
+
 pub fn eval(
-    comptime T: type,
     allocator: mem.Allocator,
-    file: File,
+    file: DesugFile,
     input: []const u8,
-) Result(T) {
+) Result(Expr) {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
@@ -97,12 +102,23 @@ pub fn eval(
 
     var tokens_ = tokens.items;
 
-    var expr_ = switch (Expr.parse(allocator, &tokens_)) {
+    var expr_ = switch (AstExpr.parse(allocator, &tokens_)) {
         .ok => |x| x,
         .err => |e| return .{ .err = Error.from(e) },
     };
 
     defer expr_.deinit();
 
-    return eval_expr.eval(T, allocator, file, expr_);
+    const desug_expr = desug.expr.Expr.desug(allocator, expr_);
+    defer desug_expr.deinit();
+
+    var scope = Scope.init(allocator);
+    defer scope.deinit();
+
+    return eval_expr.eval(
+        allocator,
+        file,
+        scope,
+        desug_expr,
+    );
 }

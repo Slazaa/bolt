@@ -64,19 +64,18 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Desug ---\n");
 
-    var desug_ = desug.desug(allocator, ast_);
+    const desug_ = desug.desug(allocator, ast_);
     defer desug_.deinit();
 
     try desug_.format(allocator, stdout_writer, 0);
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    const eval_input = "pi";
+    const eval_input = "id_pi";
 
     const result = switch (eval.eval(
-        f64,
         allocator,
-        ast_,
+        desug_,
         eval_input,
     )) {
         .ok => |x| x,
@@ -89,5 +88,7 @@ pub fn main() !void {
     };
 
     try stdout_writer.print("Input: {s}\n", .{eval_input});
-    try stdout_writer.print("Result: {}\n", .{result});
+    try stdout_writer.print("Result:\n", .{});
+
+    try result.format(allocator, stdout_writer);
 }

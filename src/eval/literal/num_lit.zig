@@ -2,11 +2,15 @@ const std = @import("std");
 
 const fmt = std.fmt;
 
-const ast = @import("../../ast.zig");
-const expr = ast.expr;
+const desug = @import("../../desug.zig");
+const expr = @import("../../expr.zig");
 
-const NumLit = expr.NumLit;
+const AstNumLit = desug.expr.NumLit;
 
-pub fn eval(num_lit: NumLit) f64 {
-    return fmt.parseFloat(f64, num_lit.value.value) catch unreachable;
+const Num = expr.Num;
+
+pub fn eval(num_lit: AstNumLit) Num {
+    return .{
+        .value = num_lit.value.value,
+    };
 }

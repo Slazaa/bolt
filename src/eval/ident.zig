@@ -2,23 +2,39 @@ const std = @import("std");
 
 const mem = std.mem;
 
+const desug = @import("../desug.zig");
 const eval_ = @import("../eval.zig");
-
-const ast = @import("../ast.zig");
-const expr = ast.expr;
 
 const Result = eval_.Result;
 
-const File = expr.File;
-const Ident = expr.Ident;
+const Scope = eval_.Scope;
+
+const AstFile = desug.expr.File;
+const AstIdent = desug.expr.Ident;
 
 const eval_expr = @import("expr.zig");
 
-pub fn eval(comptime T: type, file: File, ident: Ident) Result(T) {
+const Expr = @import("../expr.zig").Expr;
+
+pub fn eval(
+    allocator: mem.Allocator,
+    file: AstFile,
+    scope: Scope,
+    ident: AstIdent,
+) Result(Expr) {
     for (file.binds.items) |bind| {
         if (mem.eql(u8, bind.ident.value, ident.value.value)) {
-            return eval_expr.eval(T, file, bind.expr.*);
+            return eval_expr.eval(
+                allocator,
+                file,
+                scope,
+                bind.expr.*,
+            );
         }
+    }
+
+    if (scope.get(ident.value.value)) |expr| {
+        return .{ .ok = expr };
     }
 
     @panic("Unknown Ident");

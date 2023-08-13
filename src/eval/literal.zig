@@ -1,11 +1,13 @@
-const ast = @import("../ast.zig");
+const desug = @import("../desug.zig");
 
-const Literal = ast.expr.Literal;
+const Literal = desug.expr.Literal;
 
 const num_lit = @import("literal/num_lit.zig");
 
-pub fn eval(comptime T: type, literal: Literal) T {
+const Expr = @import("../expr.zig").Expr;
+
+pub fn eval(literal: Literal) Expr {
     return switch (literal) {
-        .num => |x| num_lit.eval(x),
+        .num => |x| .{ .num = num_lit.eval(x) },
     };
 }
