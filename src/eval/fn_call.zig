@@ -11,22 +11,20 @@ const Result = eval_.Result;
 
 const Scope = eval_.Scope;
 
-const expr = @import("expr.zig");
+const expr_eval = @import("expr.zig");
+const expr = @import("../expr.zig");
 
-const AstFile = desug.expr.File;
 const AstFnCall = desug.expr.FnCall;
 
 const Expr = @import("../expr.zig").Expr;
 
 pub fn eval(
     allocator: mem.Allocator,
-    file: AstFile,
     scope: Scope,
     fn_call: AstFnCall,
 ) Result(Expr) {
-    const func = switch (expr.eval(
+    const func = switch (expr_eval.eval(
         allocator,
-        file,
         scope,
         fn_call.func.*,
     )) {
@@ -43,23 +41,12 @@ pub fn eval(
     var new_scope = scope.clone() catch @panic("Clone failed");
     defer new_scope.deinit();
 
-    const arg_expr = switch (expr.eval(
-        allocator,
-        file,
-        scope,
-        fn_call.expr.*,
-    )) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = e },
-    };
-
-    new_scope.put(func.arg.value, arg_expr) catch {
+    new_scope.put(func.arg.value, fn_call.expr.*) catch {
         @panic("Allocation failed");
     };
 
-    switch (expr.eval(
+    switch (expr_eval.eval(
         allocator,
-        file,
         new_scope,
         func.expr,
     )) {

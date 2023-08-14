@@ -7,6 +7,10 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("fmt.zig");
 
+const desug = @import("desug.zig");
+
+const AstExpr = desug.expr.Expr;
+
 pub const Fn = @import("expr/Fn.zig");
 pub const Num = @import("expr/Num.zig");
 

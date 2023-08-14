@@ -14,8 +14,7 @@ const Token = lexer.Token;
 pub fn main() !void {
     const input =
         \\pi = 3.1415;
-        \\id = x -> x;
-        \\id_pi = id pi;
+        \\true = (x y -> x);
     ;
 
     const stdout = io.getStdOut();
@@ -71,7 +70,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    const eval_input = "(x -> x) 10";
+    const eval_input = "pi";
 
     const result = switch (eval.eval(
         allocator,

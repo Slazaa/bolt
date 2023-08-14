@@ -6,11 +6,12 @@ const desug = @import("../desug.zig");
 const eval_ = @import("../eval.zig");
 
 const AstExpr = desug.expr.Expr;
-const AstFile = desug.expr.File;
 
 const Result = eval_.Result;
 
 const Scope = eval_.Scope;
+
+const expr_ = @import("../expr.zig");
 
 const fn_call = @import("fn_call.zig");
 const fn_decl = @import("fn_decl.zig");
@@ -21,21 +22,18 @@ const Expr = @import("../expr.zig").Expr;
 
 pub fn eval(
     allocator: mem.Allocator,
-    file: AstFile,
     scope: Scope,
     expr: AstExpr,
 ) Result(Expr) {
     return switch (expr) {
         .fn_call => |x| fn_call.eval(
             allocator,
-            file,
             scope,
             x,
         ),
         .fn_decl => |x| .{ .ok = .{ .@"fn" = fn_decl.eval(x) } },
         .ident => |x| ident.eval(
             allocator,
-            file,
             scope,
             x,
         ),

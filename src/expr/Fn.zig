@@ -12,12 +12,12 @@ const lexer = @import("../lexer.zig");
 
 const IdentTok = lexer.Ident;
 
-const Expr = desug.expr.Expr;
+const AstExpr = desug.expr.Expr;
 
 const Self = @This();
 
 arg: IdentTok,
-expr: Expr,
+expr: AstExpr,
 
 pub fn format(
     self: Self,

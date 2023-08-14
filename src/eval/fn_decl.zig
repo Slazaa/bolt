@@ -4,7 +4,9 @@ const desug = @import("../desug.zig");
 
 const AstFnDecl = desug.expr.FnDecl;
 
-const Fn = @import("../expr.zig").Fn;
+const expr = @import("../expr.zig");
+
+const Fn = expr.Fn;
 
 pub fn eval(fn_decl: AstFnDecl) Fn {
     return .{

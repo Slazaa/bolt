@@ -13,11 +13,14 @@ const lexer = @import("lexer.zig");
 
 const AstExpr = ast.expr.Expr;
 
+const DesugExpr = desug.expr.Expr;
 const DesugFile = desug.expr.File;
 
 const eval_expr = @import("eval/expr.zig");
 
-const Expr = @import("expr.zig").Expr;
+const expr = @import("expr.zig");
+
+const Expr = expr.Expr;
 
 const Token = lexer.Token;
 
@@ -79,14 +82,14 @@ pub const Error = union(enum) {
     }
 };
 
+pub const Scope = std.StringArrayHashMap(DesugExpr);
+
 pub fn Result(comptime T: type) type {
     return union(enum) {
         ok: T,
         err: Error,
     };
 }
-
-pub const Scope = std.StringHashMap(Expr);
 
 pub fn eval(
     allocator: mem.Allocator,
@@ -115,9 +118,14 @@ pub fn eval(
     var scope = Scope.init(allocator);
     defer scope.deinit();
 
+    for (file.binds.items) |bind| {
+        scope.put(bind.ident.value, bind.expr.*) catch {
+            @panic("Put failed");
+        };
+    }
+
     return eval_expr.eval(
         allocator,
-        file,
         scope,
         desug_expr,
     );
