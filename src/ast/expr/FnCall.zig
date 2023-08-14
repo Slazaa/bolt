@@ -31,47 +31,20 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.func);
 
     self.expr.deinit();
-    self.allocator.destroy(self.func);
+    self.allocator.destroy(self.expr);
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
-    var input_ = input.*;
+pub fn parse(allocator: mem.Allocator, func: Expr, expr: Expr) Result(Self) {
+    const func_ = allocator.create(Expr) catch @panic("Allocation faield");
+    func_.* = func;
 
-    // const func = allocator.create(Expr) catch @panic("Allocation failed");
-
-    // func.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-    //     .ok => |x| x,
-    //     .err => |e| {
-    //         allocator.destroy(func);
-    //         return .{ .err = e };
-    //     },
-    // });
-
-    // const expr_ = allocator.create(Expr) catch {
-    //     func.deinit();
-    //     allocator.destroy(func);
-
-    //     @panic("Allocation failed");
-    // };
-
-    // expr_.* = Expr.from(switch (Ident.parse(allocator, &input_)) {
-    //     .ok => |x| x,
-    //     .err => |e| {
-    //         allocator.destroy(expr_);
-
-    //         func.deinit();
-    //         allocator.destroy(func);
-
-    //         return .{ .err = e };
-    //     },
-    // });
-
-    input.* = input_;
+    const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
+    expr_.* = expr;
 
     return .{ .ok = .{
         .allocator = allocator,
-        .func = func,
-        .expr = expr,
+        .func = func_,
+        .expr = expr_,
     } };
 }
 

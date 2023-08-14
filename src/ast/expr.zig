@@ -63,37 +63,57 @@ pub const Expr = union(enum) {
     }
 
     pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Expr) {
+        if (input.len == 0) {
+            return .{ .err = Error.from(InvalidInputError.init(
+                allocator,
+                "Expected Expr, found nothing",
+            )) };
+        }
+
         const parsers = .{
             Literal.parse,
             FnDecl.parse,
             Ident.parse,
         };
 
-        const expr = b: {
-            switch (FnCall.parse(allocator, input)) {
-                .ok => |x| break :b x,
-                .err => |e| e.deinit(),
-            }
+        var exprs = std.ArrayList(Expr).init(allocator);
+        defer exprs.deinit();
 
-            switch (parent.parse(allocator, input)) {
-                .ok => |x| break :b x,
-                .err => |e| e.deinit(),
-            }
-
-            inline for (parsers) |parser| {
-                switch (parser(allocator, input)) {
-                    .ok => |x| break :b Self.from(x),
+        expr_loop: while (input.len != 0) {
+            const expr = b: {
+                switch (parent.parse(allocator, input)) {
+                    .ok => |x| break :b x,
                     .err => |e| e.deinit(),
                 }
-            } else {
-                return .{ .err = Error.from(InvalidInputError.init(
-                    allocator,
-                    "Could not parse Expr",
-                )) };
-            }
-        };
 
-        return .{ .ok = expr };
+                inline for (parsers) |parser| {
+                    switch (parser(allocator, input)) {
+                        .ok => |x| break :b Self.from(x),
+                        .err => |e| e.deinit(),
+                    }
+                } else {
+                    break :expr_loop;
+                }
+            };
+
+            exprs.append(expr) catch @panic("Allocation failed");
+        }
+
+        while (exprs.items.len != 1) {
+            const func = exprs.items[0];
+            const expr = exprs.orderedRemove(1);
+
+            exprs.items[0] = switch (FnCall.parse(
+                allocator,
+                func,
+                expr,
+            )) {
+                .ok => |x| Self.from(x),
+                .err => |e| return .{ .err = e },
+            };
+        }
+
+        return .{ .ok = exprs.items[0] };
     }
 
     pub fn format(
