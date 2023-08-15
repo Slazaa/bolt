@@ -19,6 +19,24 @@ const Self = @This();
 arg: IdentTok,
 expr: AstExpr,
 
+fn replaceArgWithExpr(expr: *AstExpr, arg: []const u8, value: AstExpr) void {
+    switch (expr.*) {
+        .fn_call => |x| {
+            replaceArgWithExpr(x.func, arg, value);
+            replaceArgWithExpr(x.expr, arg, value);
+        },
+        .fn_decl => |x| replaceArgWithExpr(x.expr, arg, value),
+        .ident => |x| if (mem.eql(u8, x.value.value, arg)) {
+            expr.* = value;
+        },
+        else => {},
+    }
+}
+
+pub fn replaceArg(self: *Self, expr: AstExpr) void {
+    replaceArgWithExpr(&self.expr, self.arg.value, expr);
+}
+
 pub fn format(
     self: Self,
     allocator: mem.Allocator,

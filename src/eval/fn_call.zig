@@ -23,7 +23,7 @@ pub fn eval(
     scope: Scope,
     fn_call: AstFnCall,
 ) Result(Expr) {
-    const func = switch (expr_eval.eval(
+    var func = switch (expr_eval.eval(
         allocator,
         scope,
         fn_call.func.*,
@@ -38,16 +38,11 @@ pub fn eval(
         .err => |e| return .{ .err = e },
     };
 
-    var new_scope = scope.clone() catch @panic("Clone failed");
-    defer new_scope.deinit();
-
-    new_scope.put(func.arg.value, fn_call.expr.*) catch {
-        @panic("Allocation failed");
-    };
+    func.replaceArg(fn_call.expr.*);
 
     switch (expr_eval.eval(
         allocator,
-        new_scope,
+        scope,
         func.expr,
     )) {
         .ok => |x| return .{ .ok = x },
