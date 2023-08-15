@@ -10,6 +10,8 @@ const fmt = @import("../fmt.zig");
 
 const Position = @import("../Position.zig");
 
+const legal_chars = "+-*/%";
+
 const Self = @This();
 
 value: []const u8,
@@ -17,12 +19,27 @@ start_pos: Position,
 end_pos: Position,
 
 pub fn startsWithValidHeadChar(input: []const u8) bool {
-    return input.len != 0 and (ascii.isAlphabetic(input[0]) or input[0] == '_');
+    return input.len != 0 and
+        (ascii.isAlphabetic(input[0]) or
+        input[0] == '_' or
+        mem.containsAtLeast(
+        u8,
+        legal_chars,
+        1,
+        &[_]u8{input[0]},
+    ));
 }
 
 pub fn startsWithValidTailChar(input: []const u8) bool {
     return input.len != 0 and
-        (ascii.isAlphanumeric(input[0]) or input[0] == '_');
+        (ascii.isAlphanumeric(input[0]) or
+        input[0] == '_' or
+        mem.containsAtLeast(
+        u8,
+        legal_chars,
+        1,
+        &[_]u8{input[0]},
+    ));
 }
 
 pub fn lex(input: *[]const u8, position: *Position) ?Self {

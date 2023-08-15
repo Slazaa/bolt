@@ -69,7 +69,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    const eval_input = "(x y -> y) 10 20";
+    const eval_input = "(x y -> x) 10 20";
 
     const result = switch (eval.eval(
         allocator,
