@@ -26,20 +26,31 @@ allocator: mem.Allocator,
 func: *Expr,
 expr: *Expr,
 
-pub fn deinit(self: Self) void {
-    self.func.deinit();
-    self.allocator.destroy(self.func);
-
-    self.expr.deinit();
-    self.allocator.destroy(self.expr);
+fn deinitFunc(allocator: mem.Allocator, func: *Expr) void {
+    func.deinit();
+    allocator.destroy(func);
 }
 
-pub fn parse(allocator: mem.Allocator, func: Expr, expr: Expr) Result(Self) {
-    const func_ = allocator.create(Expr) catch @panic("Allocation faield");
+fn deinitExpr(allocator: mem.Allocator, expr: *Expr) void {
+    expr.deinit();
+    allocator.destroy(expr);
+}
+
+pub fn deinit(self: Self) void {
+    deinitFunc(self.allocator, self.func);
+    deinitExpr(self.allocator, self.expr);
+}
+
+pub fn parse(allocator: mem.Allocator, func: Expr, expr: Expr) !Result(Self) {
+    const func_ = try allocator.create(Expr);
     func_.* = func;
 
-    const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
+    errdefer deinitFunc(allocator, func_);
+
+    const expr_ = try allocator.create(Expr);
     expr_.* = expr;
+
+    errdefer deinitExpr(allocator, expr_);
 
     return .{ .ok = .{
         .allocator = allocator,

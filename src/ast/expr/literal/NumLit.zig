@@ -29,23 +29,28 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
         )) };
     }
 
-    const value = switch (input.*[0]) {
-        .literal => |x| if (x.kind != .num) {
-            return .{ .err = Error.from(InvalidInput.init(
-                allocator,
-                "Expected NumLit",
-            )) };
-        } else x,
-        else => return .{ .err = Error.from(InvalidInput.init(
+    var value = null;
+
+    switch (input.*[0]) {
+        .literal => |x| if (x.kind == .num) {
+            value = x;
+        },
+        else => {},
+    }
+
+    if (value == null) {
+        return .{ .err = Error.from(InvalidInput.init(
             allocator,
             "Expected NumLit",
-        )) },
-    };
+        )) };
+    }
+
+    const value_ = value.?;
 
     input.* = input.*[1..];
 
     return .{ .ok = .{
-        .value = value,
+        .value = value_,
     } };
 }
 

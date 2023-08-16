@@ -38,19 +38,17 @@ pub const Literal = union(enum) {
             NumLit.parse,
         };
 
-        const literal = inline for (parsers) |parser| {
+        inline for (parsers) |parser| {
             switch (parser(allocator, input)) {
-                .ok => |x| break Self.from(x),
+                .ok => |x| return .{ .ok = Self.from(x) },
                 .err => |e| e.deinit(),
             }
-        } else {
-            return .{ .err = Error.from(InvalidInputError.init(
-                allocator,
-                "Could not parse Literal",
-            )) };
-        };
+        }
 
-        return .{ .ok = literal };
+        return .{ .err = Error.from(InvalidInputError.init(
+            allocator,
+            "Could not parse Literal",
+        )) };
     }
 
     pub fn format(

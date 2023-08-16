@@ -62,7 +62,10 @@ pub const Expr = union(enum) {
         }
     }
 
-    pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Expr) {
+    pub fn parse(
+        allocator: mem.Allocator,
+        input: *[]const Token,
+    ) !Result(Expr) {
         if (input.len == 0) {
             return .{ .err = Error.from(InvalidInputError.init(
                 allocator,
@@ -79,9 +82,15 @@ pub const Expr = union(enum) {
         var exprs = std.ArrayList(Expr).init(allocator);
         defer exprs.deinit();
 
+        errdefer {
+            for (exprs.items) |expr| {
+                expr.deinit();
+            }
+        }
+
         expr_loop: while (input.len != 0) {
             const expr = b: {
-                switch (parent.parse(allocator, input)) {
+                switch (try parent.parse(allocator, input)) {
                     .ok => |x| break :b x,
                     .err => |e| e.deinit(),
                 }
@@ -91,12 +100,12 @@ pub const Expr = union(enum) {
                         .ok => |x| break :b Self.from(x),
                         .err => |e| e.deinit(),
                     }
-                } else {
-                    break :expr_loop;
                 }
+
+                break :expr_loop;
             };
 
-            exprs.append(expr) catch @panic("Allocation failed");
+            try exprs.append(expr);
         }
 
         while (exprs.items.len != 1) {

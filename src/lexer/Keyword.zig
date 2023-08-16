@@ -21,7 +21,7 @@ end_pos: Position,
 pub fn lex(input: *[]const u8, position: *Position) ?Self {
     const start_pos = position.*;
 
-    return for (keywords) |keyword| {
+    for (keywords) |keyword| {
         const value = input[0..keyword.len];
 
         if (!mem.eql(u8, value, keyword)) {
@@ -33,12 +33,14 @@ pub fn lex(input: *[]const u8, position: *Position) ?Self {
         position.column += keyword.len;
         position.index += keyword.len;
 
-        break .{
+        return .{
             .value = value,
             .start_pos = start_pos,
             .end_pos = position.*,
         };
-    } else null;
+    }
+
+    return null;
 }
 
 pub fn format(

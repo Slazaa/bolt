@@ -68,6 +68,7 @@ fn lexNum(input: *[]const u8, position: *Position) ?Self {
     const token_size = input.len - input_.len;
 
     const value = input.*[0..token_size];
+
     const end_pos = .{
         .line = start_pos.line,
         .column = start_pos.column + token_size - 1,
@@ -90,11 +91,13 @@ pub fn lex(input: *[]const u8, position: *Position) ?Self {
         lexNum,
     };
 
-    return inline for (lexers) |lexer| {
+    inline for (lexers) |lexer| {
         if (lexer(input, position)) |literal| {
-            break literal;
+            return literal;
         }
-    } else null;
+    }
+
+    return null;
 }
 
 pub fn format(

@@ -20,46 +20,41 @@ const Self = @This();
 
 binds: std.ArrayList(Bind),
 
-pub fn deinit(self: Self) void {
-    for (self.binds.items) |bind| {
+fn deinitBinds(binds: std.ArrayList(Bind)) void {
+    for (binds.items) |bind| {
         bind.deinit();
     }
 
-    self.binds.deinit();
+    binds.deinit();
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+pub fn deinit(self: Self) void {
+    deinitBinds(self.binds);
+}
+
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     var binds = std.ArrayList(Bind).init(allocator);
+    errdefer deinitBinds(binds);
 
     while (input.len != 0) {
-        const bind = switch (Bind.parse(allocator, input)) {
+        const bind = switch (try Bind.parse(
+            allocator,
+            input,
+        )) {
             .ok => |x| x,
             .err => |e| {
-                for (binds.items) |bind| {
-                    bind.deinit();
-                }
-
-                binds.deinit();
-
+                deinitBinds(binds);
                 return .{ .err = e };
             },
         };
 
-        binds.append(bind) catch {
-            bind.deinit();
+        errdefer bind.deinit();
 
-            for (binds.items) |bind_| {
-                bind_.deinit();
-            }
-
-            binds.deinit();
-
-            @panic("Allocation failed");
-        };
+        try binds.append(bind);
     }
 
     if (input.len != 0) {
-        binds.deinit();
+        deinitBinds(binds);
         return .{ .err = .input_left };
     }
 

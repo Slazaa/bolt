@@ -10,13 +10,12 @@ const fmt = @import("../../fmt.zig");
 const lexer = @import("../../lexer.zig");
 
 const ast = @import("../../ast.zig");
-const expr = ast.expr;
 
 const Error = ast.Error;
 const Result = ast.Result;
 const InvalidInputError = ast.InvalidInputError;
 
-const Expr = expr.Expr;
+const Expr = ast.expr.Expr;
 
 const Token = lexer.Token;
 const IdentTok = lexer.Ident;
@@ -27,17 +26,25 @@ allocator: mem.Allocator,
 args: std.ArrayList(IdentTok),
 expr: *Expr,
 
-pub fn deinit(self: Self) void {
-    self.args.deinit();
-
-    self.expr.deinit();
-    self.allocator.destroy(self.expr);
+fn deinitArgs(args: std.ArrayList(IdentTok)) void {
+    args.deinit();
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+fn deinitExpr(allocator: mem.Allocator, expr: *Expr) void {
+    expr.deinit();
+    allocator.destroy(expr);
+}
+
+pub fn deinit(self: Self) void {
+    deinitArgs(self.args);
+    deinitExpr(self.allocator, self.expr);
+}
+
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     var input_ = input.*;
 
     var args = std.ArrayList(IdentTok).init(allocator);
+    errdefer deinitArgs(args);
 
     while (input_.len != 0) {
         const arg = switch (input_[0]) {
@@ -45,16 +52,13 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
             else => break,
         };
 
-        args.append(arg) catch {
-            args.deinit();
-            @panic("Allocation failed");
-        };
+        try args.append(arg);
 
         input_ = input_[1..];
     }
 
     if (args.items.len == 0) {
-        args.deinit();
+        deinitArgs(args);
 
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
@@ -63,7 +67,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     }
 
     if (input_.len == 0) {
-        args.deinit();
+        deinitArgs(args);
 
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
@@ -71,48 +75,44 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
         )) };
     }
 
-    switch (input_[0]) {
-        .punct => |x| if (!mem.eql(u8, x.value, "->")) {
-            args.deinit();
+    {
+        const found_arr = switch (input_[0]) {
+            .punct => |x| mem.eql(u8, x.value, "->"),
+            else => false,
+        };
+
+        if (!found_arr) {
+            deinitArgs(args);
 
             return .{ .err = Error.from(InvalidInputError.init(
                 allocator,
                 "Expected '->'",
             )) };
-        },
-        else => {
-            args.deinit();
+        }
 
-            return .{ .err = Error.from(InvalidInputError.init(
-                allocator,
-                "Expected '->'",
-            )) };
-        },
+        input_ = input_[1..];
     }
 
-    input_ = input_[1..];
+    const expr = try allocator.create(Expr);
 
-    const expr_ = allocator.create(Expr) catch {
-        args.deinit();
-        @panic("Allocation failed");
-    };
-
-    expr_.* = switch (Expr.parse(allocator, &input_)) {
+    expr.* = switch (Expr.parse(allocator, &input_)) {
         .ok => |x| x,
         .err => |e| {
-            allocator.destroy(expr_);
-            args.deinit();
+            allocator.destroy(expr);
+            deinitArgs(args);
 
             return .{ .err = e };
         },
     };
+
+    errdefer deinitExpr(allocator, expr);
 
     input.* = input_;
 
     return .{ .ok = .{
         .allocator = allocator,
         .args = args,
-        .expr = expr_,
+        .expr = expr,
     } };
 }
 

@@ -144,7 +144,7 @@ fn lexSkip(input: *[]const u8, position: *Position) void {
     }
 }
 
-pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ?Error {
+pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) !?Error {
     var input_ = input;
     var position = Position.default();
 
@@ -166,7 +166,7 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) ?Error {
             return .{ .invalid_token = .{ .position = position } };
         };
 
-        tokens.append(token) catch @panic("Allocation failed");
+        try tokens.append(token);
     }
 
     if (position.index != input.len) {

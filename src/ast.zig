@@ -20,9 +20,11 @@ pub const InvalidInputError = struct {
 
     message: std.ArrayList(u8),
 
-    pub fn init(allocator: mem.Allocator, message_slice: []const u8) Self {
+    pub fn init(allocator: mem.Allocator, message_slice: []const u8) !Self {
         var message = std.ArrayList(u8).init(allocator);
-        message.appendSlice(message_slice) catch @panic("Allocation failed");
+        errdefer message.deinit();
+
+        try message.appendSlice(message_slice);
 
         return .{
             .message = message,
@@ -61,7 +63,7 @@ pub const Error = union(enum) {
         return switch (T) {
             InvalidInputError => .{ .invalid_input = item },
             InputLeftError => .{ .input_left = item },
-            else => @compileError("Expected expr, found " ++ @typeName(T)),
+            else => @panic("Expected Expr, found " ++ @typeName(T)),
         };
     }
 
@@ -86,10 +88,10 @@ pub fn Result(comptime T: type) type {
     };
 }
 
-pub fn parse(allocator: mem.Allocator, input: []const Token) Result(File) {
+pub fn parse(allocator: mem.Allocator, input: []const Token) !Result(File) {
     var input_ = input;
 
-    const expr_ = switch (File.parse(allocator, &input_)) {
+    const expr_ = switch (try File.parse(allocator, &input_)) {
         .ok => |x| x,
         .err => |e| return .{ .err = e },
     };

@@ -36,7 +36,7 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    if (lexer.lex(input, &tokens)) |err| {
+    if (try lexer.lex(input, &tokens)) |err| {
         try err.format(stderr_writer);
         return error.LexerError;
     }
@@ -47,7 +47,10 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast_ = switch (ast.parse(allocator, tokens.items)) {
+    var ast_ = switch (try ast.parse(
+        allocator,
+        tokens.items,
+    )) {
         .ok => |x| x,
         .err => |e| {
             try e.format(stderr_writer);

@@ -23,7 +23,7 @@ pub fn lex(input: *[]const u8, position: *Position) ?Self {
 
     const start_pos = position.*;
 
-    return for (puncts) |punct| {
+    for (puncts) |punct| {
         if (input.len < punct.len) {
             continue;
         }
@@ -45,12 +45,14 @@ pub fn lex(input: *[]const u8, position: *Position) ?Self {
         position.column += punct.len;
         position.index += punct.len;
 
-        break .{
+        return .{
             .value = value,
             .start_pos = start_pos,
             .end_pos = end_pos,
         };
-    } else null;
+    }
+
+    return null;
 }
 
 pub fn format(
