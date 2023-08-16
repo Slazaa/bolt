@@ -13,7 +13,8 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\
+        \\fst = (x y -> x);
+        \\sec = (x y -> y);
     ;
 
     const stdout = io.getStdOut();
@@ -69,7 +70,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    const eval_input = "(x y -> x) 10 20";
+    const eval_input = "sec 10 20";
 
     const result = switch (eval.eval(
         allocator,

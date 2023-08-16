@@ -57,7 +57,7 @@ pub fn format(
         depth_tabs.items,
     });
 
-    try fmt.print(writer, "{s}    args: [\n", .{
+    try fmt.print(writer, "{s}    binds: [\n", .{
         depth_tabs.items,
     });
 
