@@ -10,7 +10,7 @@ const fmt = @import("../fmt.zig");
 
 const Position = @import("../Position.zig");
 
-const legal_chars = "+-*/%";
+const legal_chars = "_+-*/%";
 
 const Self = @This();
 
@@ -21,7 +21,6 @@ end_pos: Position,
 pub fn startsWithValidHeadChar(input: []const u8) bool {
     return input.len != 0 and
         (ascii.isAlphabetic(input[0]) or
-        input[0] == '_' or
         mem.containsAtLeast(
         u8,
         legal_chars,
@@ -33,7 +32,6 @@ pub fn startsWithValidHeadChar(input: []const u8) bool {
 pub fn startsWithValidTailChar(input: []const u8) bool {
     return input.len != 0 and
         (ascii.isAlphanumeric(input[0]) or
-        input[0] == '_' or
         mem.containsAtLeast(
         u8,
         legal_chars,

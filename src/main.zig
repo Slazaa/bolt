@@ -73,7 +73,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    const eval_input = "sec 10 20";
+    const eval_input = "fst 10 20";
 
     const result = switch (try eval.eval(
         allocator,
