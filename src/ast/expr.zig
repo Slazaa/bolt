@@ -96,7 +96,7 @@ pub const Expr = union(enum) {
                 }
 
                 inline for (parsers) |parser| {
-                    switch (parser(allocator, input)) {
+                    switch (try parser(allocator, input)) {
                         .ok => |x| break :b Self.from(x),
                         .err => |e| e.deinit(),
                     }
@@ -112,7 +112,7 @@ pub const Expr = union(enum) {
             const func = exprs.items[0];
             const expr = exprs.orderedRemove(1);
 
-            exprs.items[0] = switch (FnCall.parse(
+            exprs.items[0] = switch (try FnCall.parse(
                 allocator,
                 func,
                 expr,

@@ -33,19 +33,19 @@ pub const Literal = union(enum) {
         };
     }
 
-    pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+    pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
         const parsers = .{
             NumLit.parse,
         };
 
         inline for (parsers) |parser| {
-            switch (parser(allocator, input)) {
+            switch (try parser(allocator, input)) {
                 .ok => |x| return .{ .ok = Self.from(x) },
                 .err => |e| e.deinit(),
             }
         }
 
-        return .{ .err = Error.from(InvalidInputError.init(
+        return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Could not parse Literal",
         )) };

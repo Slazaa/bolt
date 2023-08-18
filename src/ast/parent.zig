@@ -13,12 +13,12 @@ const Token = lexer.Token;
 
 const Expr = @import("expr.zig").Expr;
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Expr) {
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Expr) {
     var input_ = input.*;
 
     {
         if (input_.len == 0) {
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected '(', found nothing",
             )) };
@@ -30,7 +30,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Expr) {
         };
 
         if (!found_parent) {
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected '('",
             )) };
@@ -48,7 +48,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Expr) {
 
     {
         if (input_.len == 0) {
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected ')', found nothing",
             )) };
@@ -62,7 +62,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Expr) {
         if (!found_parent) {
             expr.deinit();
 
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected ')'",
             )) };

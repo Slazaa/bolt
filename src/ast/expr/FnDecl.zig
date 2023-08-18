@@ -40,7 +40,7 @@ pub fn deinit(self: Self) void {
     deinitExpr(self.allocator, self.expr);
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Self) {
     var input_ = input.*;
 
     var args = std.ArrayList(IdentTok).init(allocator);
@@ -60,7 +60,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     if (args.items.len == 0) {
         deinitArgs(args);
 
-        return .{ .err = Error.from(InvalidInputError.init(
+        return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected at least 1 arg, found nothing",
         )) };
@@ -69,7 +69,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     if (input_.len == 0) {
         deinitArgs(args);
 
-        return .{ .err = Error.from(InvalidInputError.init(
+        return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected '->', found nothing",
         )) };
@@ -84,7 +84,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
         if (!found_arr) {
             deinitArgs(args);
 
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected '->'",
             )) };
@@ -95,7 +95,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
 
     const expr = try allocator.create(Expr);
 
-    expr.* = switch (Expr.parse(allocator, &input_)) {
+    expr.* = switch (try Expr.parse(allocator, &input_)) {
         .ok => |x| x,
         .err => |e| {
             allocator.destroy(expr);

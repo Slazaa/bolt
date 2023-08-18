@@ -95,17 +95,17 @@ pub fn eval(
     allocator: mem.Allocator,
     file: DesugFile,
     input: []const u8,
-) Result(Expr) {
+) !Result(Expr) {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    if (lexer.lex(input, &tokens)) |err| {
+    if (try lexer.lex(input, &tokens)) |err| {
         return .{ .err = Error.from(err) };
     }
 
     var tokens_ = tokens.items;
 
-    var expr_ = switch (AstExpr.parse(allocator, &tokens_)) {
+    var expr_ = switch (try AstExpr.parse(allocator, &tokens_)) {
         .ok => |x| x,
         .err => |e| return .{ .err = Error.from(e) },
     };

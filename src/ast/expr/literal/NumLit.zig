@@ -21,15 +21,15 @@ const Self = @This();
 
 value: Literal,
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     if (input.len == 0) {
-        return .{ .err = Error.from(InvalidInput.init(
+        return .{ .err = Error.from(try InvalidInput.init(
             allocator,
             "Expected NumLit, found nothing",
         )) };
     }
 
-    var value = null;
+    var value: ?Literal = null;
 
     switch (input.*[0]) {
         .literal => |x| if (x.kind == .num) {
@@ -39,7 +39,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
     }
 
     if (value == null) {
-        return .{ .err = Error.from(InvalidInput.init(
+        return .{ .err = Error.from(try InvalidInput.init(
             allocator,
             "Expected NumLit",
         )) };

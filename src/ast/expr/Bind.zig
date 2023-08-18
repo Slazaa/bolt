@@ -46,13 +46,13 @@ pub fn deinit(self: Self) void {
     deinitExpr(self.allocator, self.expr);
 }
 
-fn parseArg(allocator: mem.Allocator, input: *[]const Token) ?Expr {
+fn parseArg(allocator: mem.Allocator, input: *[]const Token) !?Expr {
     const parsers = .{
         Ident.parse,
     };
 
     inline for (parsers) |parser| {
-        switch (parser(allocator, input)) {
+        switch (try parser(allocator, input)) {
             .ok => |x| return Expr.from(x),
             .err => |e| e.deinit(),
         }
@@ -73,7 +73,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
 
     const ident = switch (input_[0]) {
         .ident => |x| x,
-        else => return .{ .err = Error.from(InvalidInputError.init(
+        else => return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected Ident",
         )) },
@@ -84,14 +84,14 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     var args = std.ArrayList(Expr).init(allocator);
     errdefer deinitArgs(args);
 
-    while (parseArg(allocator, &input_)) |arg| {
+    while (try parseArg(allocator, &input_)) |arg| {
         try args.append(arg);
     }
 
     if (input_.len == 0) {
         deinitArgs(args);
 
-        return .{ .err = Error.from(InvalidInputError.init(
+        return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected '=', found nothing",
         )) };
@@ -110,7 +110,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
 
             args.deinit();
 
-            return .{ .err = Error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected '='",
             )) };
@@ -137,7 +137,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
         deinitExpr(allocator, expr);
         deinitArgs(args);
 
-        return .{ .err = Error.from(InvalidInputError.init(
+        return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected ';', found nothing",
         )) };
@@ -153,7 +153,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
             deinitExpr(allocator, expr);
             deinitArgs(args);
 
-            return .{ .err = error.from(InvalidInputError.init(
+            return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "expected ';'",
             )) };

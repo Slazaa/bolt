@@ -20,7 +20,7 @@ const Self = @This();
 
 value: Ident,
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
+pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     if (input.len == 0) {
         return .{ .err = Error.from(InvalidInputError.init(
             allocator,
@@ -30,7 +30,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) Result(Self) {
 
     const value = switch (input.*[0]) {
         .ident => |x| x,
-        else => return .{ .err = Error.from(InvalidInputError.init(
+        else => return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected Ident",
         )) },

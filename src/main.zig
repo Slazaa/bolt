@@ -75,7 +75,7 @@ pub fn main() !void {
 
     const eval_input = "sec 10 20";
 
-    const result = switch (eval.eval(
+    const result = switch (try eval.eval(
         allocator,
         desug_,
         eval_input,
