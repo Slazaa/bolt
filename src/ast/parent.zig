@@ -13,7 +13,10 @@ const Token = lexer.Token;
 
 const Expr = @import("expr.zig").Expr;
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Expr) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+) anyerror!Result(Expr) {
     var input_ = input.*;
 
     {
