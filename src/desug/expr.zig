@@ -53,15 +53,21 @@ pub const Expr = union(enum) {
         }
     }
 
-    pub fn desug(allocator: mem.Allocator, expr: AstExpr) Self {
+    pub fn desug(allocator: mem.Allocator, expr: AstExpr) anyerror!Self {
         return switch (expr) {
-            .bind => |x| Expr.from(Bind.desug(allocator, x)),
-            .file => |x| Expr.from(File.desug(allocator, x)),
-            .fn_call => |x| Expr.from(FnCall.desug(
+            .bind => |x| Expr.from(try Bind.desug(
                 allocator,
                 x,
             )),
-            .fn_decl => |x| Expr.from(FnDecl.desug(
+            .file => |x| Expr.from(try File.desug(
+                allocator,
+                x,
+            )),
+            .fn_call => |x| Expr.from(try FnCall.desug(
+                allocator,
+                x,
+            )),
+            .fn_decl => |x| Expr.from(try FnDecl.desug(
                 allocator,
                 x,
             )),

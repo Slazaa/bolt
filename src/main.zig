@@ -66,7 +66,7 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Desug ---\n");
 
-    const desug_ = desug.desug(allocator, ast_);
+    const desug_ = try desug.desug(allocator, ast_);
     defer desug_.deinit();
 
     try desug_.format(allocator, stdout_writer, 0);

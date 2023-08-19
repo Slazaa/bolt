@@ -23,9 +23,9 @@ pub fn eval(
     allocator: mem.Allocator,
     scope: Scope,
     ident: AstIdent,
-) Result(Expr) {
+) !Result(Expr) {
     if (scope.get(ident.value.value)) |expr_| {
-        switch (eval_expr.eval(
+        switch (try eval_expr.eval(
             allocator,
             scope,
             expr_,
@@ -37,9 +37,9 @@ pub fn eval(
 
     var message = std.ArrayList(u8).init(allocator);
 
-    message.appendSlice("Unknown Ident: '") catch @panic("Allocation failed");
-    message.appendSlice(ident.value.value) catch @panic("Allocation failed");
-    message.appendSlice("'") catch @panic("Allocation failed");
+    try message.appendSlice("Unknown Ident: '");
+    try message.appendSlice(ident.value.value);
+    try message.appendSlice("'");
 
     return .{ .err = Error.from(InvalidInputError{
         .message = message,

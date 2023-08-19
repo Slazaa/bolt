@@ -29,9 +29,9 @@ pub const InvalidInputError = struct {
 
     message: std.ArrayList(u8),
 
-    pub fn init(allocator: mem.Allocator, message_slice: []const u8) Self {
+    pub fn init(allocator: mem.Allocator, message_slice: []const u8) !Self {
         var message = std.ArrayList(u8).init(allocator);
-        message.appendSlice(message_slice) catch @panic("Allocation failed");
+        try message.appendSlice(message_slice);
 
         return .{
             .message = message,
@@ -105,14 +105,17 @@ pub fn eval(
 
     var tokens_ = tokens.items;
 
-    var expr_ = switch (try AstExpr.parse(allocator, &tokens_)) {
+    var expr_ = switch (try AstExpr.parse(
+        allocator,
+        &tokens_,
+    )) {
         .ok => |x| x,
         .err => |e| return .{ .err = Error.from(e) },
     };
 
     defer expr_.deinit();
 
-    const desug_expr = desug.expr.Expr.desug(allocator, expr_);
+    const desug_expr = try DesugExpr.desug(allocator, expr_);
     defer desug_expr.deinit();
 
     var scope = Scope.init(allocator);
@@ -124,7 +127,7 @@ pub fn eval(
         };
     }
 
-    return eval_expr.eval(
+    return try eval_expr.eval(
         allocator,
         scope,
         desug_expr,

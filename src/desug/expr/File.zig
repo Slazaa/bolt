@@ -25,16 +25,14 @@ pub fn deinit(self: Self) void {
     self.binds.deinit();
 }
 
-pub fn desug(allocator: mem.Allocator, file: File) Self {
-    var binds = std.ArrayList(Bind).initCapacity(
+pub fn desug(allocator: mem.Allocator, file: File) !Self {
+    var binds = try std.ArrayList(Bind).initCapacity(
         allocator,
         file.binds.items.len,
-    ) catch @panic("Allocation failed");
+    );
 
     for (file.binds.items) |bind| {
-        binds.append(Bind.desug(allocator, bind)) catch {
-            @panic("Allocation failed");
-        };
+        try binds.append(try Bind.desug(allocator, bind));
     }
 
     return .{

@@ -24,15 +24,15 @@ pub fn eval(
     allocator: mem.Allocator,
     scope: Scope,
     expr: AstExpr,
-) Result(Expr) {
+) anyerror!Result(Expr) {
     return switch (expr) {
-        .fn_call => |x| fn_call.eval(
+        .fn_call => |x| try fn_call.eval(
             allocator,
             scope,
             x,
         ),
         .fn_decl => |x| .{ .ok = .{ .@"fn" = fn_decl.eval(x) } },
-        .ident => |x| ident.eval(
+        .ident => |x| try ident.eval(
             allocator,
             scope,
             x,

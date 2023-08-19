@@ -10,6 +10,6 @@ pub const expr = @import("desug/expr.zig");
 
 const File = expr.File;
 
-pub fn desug(allocator: mem.Allocator, ast: AstFile) File {
-    return File.desug(allocator, ast);
+pub fn desug(allocator: mem.Allocator, ast: AstFile) !File {
+    return try File.desug(allocator, ast);
 }

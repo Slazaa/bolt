@@ -29,11 +29,9 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-pub fn desug(allocator: mem.Allocator, bind: AstBind) Self {
-    const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
-    expr_.* = Expr.desug(allocator, bind.expr.*);
-
-    // TODO: - Desug FnDecl
+pub fn desug(allocator: mem.Allocator, bind: AstBind) anyerror!Self {
+    const expr_ = try allocator.create(Expr);
+    expr_.* = try Expr.desug(allocator, bind.expr.*);
 
     return .{
         .allocator = allocator,

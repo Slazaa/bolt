@@ -29,7 +29,7 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
+pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) !Self {
     if (fn_decl.args.items.len == 0) {
         @panic("Expected at least 1 arg, found none");
     }
@@ -42,7 +42,7 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
         const arg = fn_decl.args.items[i];
 
         if (last_fn_decl) |last_fn_decl_| {
-            const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
+            const expr_ = try allocator.create(Expr);
             expr_.* = Expr.from(last_fn_decl_);
 
             last_fn_decl = .{
@@ -51,8 +51,8 @@ pub fn desug(allocator: mem.Allocator, fn_decl: AstFnDecl) Self {
                 .expr = expr_,
             };
         } else {
-            const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
-            expr_.* = Expr.desug(allocator, fn_decl.expr.*);
+            const expr_ = try allocator.create(Expr);
+            expr_.* = try Expr.desug(allocator, fn_decl.expr.*);
 
             last_fn_decl = .{
                 .allocator = allocator,

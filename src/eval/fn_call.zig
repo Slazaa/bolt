@@ -22,15 +22,15 @@ pub fn eval(
     allocator: mem.Allocator,
     scope: Scope,
     fn_call: AstFnCall,
-) Result(Expr) {
-    var func = switch (expr_eval.eval(
+) !Result(Expr) {
+    var func = switch (try expr_eval.eval(
         allocator,
         scope,
         fn_call.func.*,
     )) {
         .ok => |x| switch (x) {
             .@"fn" => |y| y,
-            else => return .{ .err = Error.from(InvalidInputError.init(
+            else => return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected FnDecl",
             )) },
@@ -40,7 +40,7 @@ pub fn eval(
 
     func.replaceArg(fn_call.expr.*);
 
-    switch (expr_eval.eval(
+    switch (try expr_eval.eval(
         allocator,
         scope,
         func.expr,

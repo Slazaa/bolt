@@ -28,12 +28,12 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-pub fn desug(allocator: mem.Allocator, fn_call: AstFnCall) Self {
-    const func = allocator.create(Expr) catch @panic("Allocation failed");
-    func.* = Expr.desug(allocator, fn_call.func.*);
+pub fn desug(allocator: mem.Allocator, fn_call: AstFnCall) !Self {
+    const func = try allocator.create(Expr);
+    func.* = try Expr.desug(allocator, fn_call.func.*);
 
-    const expr_ = allocator.create(Expr) catch @panic("Allocation failed");
-    expr_.* = Expr.desug(allocator, fn_call.expr.*);
+    const expr_ = try allocator.create(Expr);
+    expr_.* = try Expr.desug(allocator, fn_call.expr.*);
 
     return .{
         .allocator = allocator,
