@@ -93,9 +93,11 @@ pub fn Result(comptime T: type) type {
 
 pub fn eval(
     allocator: mem.Allocator,
+    builtins: anytype,
     file: DesugFile,
     input: []const u8,
 ) !Result(Expr) {
+    _ = builtins;
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 

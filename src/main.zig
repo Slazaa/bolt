@@ -5,6 +5,7 @@ const heap = std.heap;
 const io = std.io;
 
 const ast = @import("ast.zig");
+const builtins = @import("builtins.zig");
 const desug = @import("desug.zig");
 const eval = @import("eval.zig");
 const lexer = @import("lexer.zig");
@@ -77,6 +78,7 @@ pub fn main() !void {
 
     const result = switch (try eval.eval(
         allocator,
+        builtins.builtins,
         desug_,
         eval_input,
     )) {
