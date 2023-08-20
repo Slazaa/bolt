@@ -94,5 +94,5 @@ pub fn main() !void {
     try stdout_writer.print("Input: {s}\n", .{eval_input});
     try stdout_writer.print("Result:\n", .{});
 
-    try result.format(allocator, stdout_writer);
+    try result.format(allocator, stdout_writer, 0);
 }

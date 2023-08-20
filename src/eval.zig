@@ -93,11 +93,10 @@ pub fn Result(comptime T: type) type {
 
 pub fn eval(
     allocator: mem.Allocator,
-    builtins: anytype,
+    comptime builtins: anytype,
     file: DesugFile,
     input: []const u8,
 ) !Result(Expr) {
-    _ = builtins;
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
@@ -122,6 +121,10 @@ pub fn eval(
 
     var scope = Scope.init(allocator);
     defer scope.deinit();
+
+    for (builtins) |builtin| {
+        _ = builtin;
+    }
 
     for (file.binds.items) |bind| {
         scope.put(bind.ident.value, bind.expr.*) catch {

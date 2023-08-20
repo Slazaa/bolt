@@ -24,9 +24,10 @@ pub const Expr = union(enum) {
         self: Self,
         allocator: mem.Allocator,
         writer: Writer,
+        depth: usize,
     ) fmt.Error!void {
         switch (self) {
-            inline else => |x| try x.format(allocator, writer),
+            inline else => |x| try x.format(allocator, writer, depth),
         }
     }
 };

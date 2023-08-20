@@ -1,20 +1,18 @@
 const std = @import("std");
 
+const mem = std.mem;
+
 const desug = @import("desug.zig");
-const expr_ = @import("expr.zig");
+const expr = @import("expr.zig");
 
-const DesugExpr = desug.expr.Expr;
+const Builtin = desug.expr.Builtin;
 
-const Expr = expr_.Expr;
+const Expr = expr.Expr;
 
-pub fn add(expr: DesugExpr) Expr {
-    const num = switch (expr) {
-        .num => |x| x,
-        else => @panic("Expected Num"),
-    };
-    _ = num;
+pub fn add(allocator: mem.Allocator) Builtin {
+    return Builtin.init(allocator, "+");
 }
 
 pub const builtins = .{
-    .{ "+", add },
+    add,
 };

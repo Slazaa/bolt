@@ -10,13 +10,11 @@ const fmt = @import("../fmt.zig");
 const desug = @import("../desug.zig");
 const lexer = @import("../lexer.zig");
 
-const IdentTok = lexer.Ident;
-
 const AstExpr = desug.expr.Expr;
 
 const Self = @This();
 
-arg: IdentTok,
+arg: []const u8,
 expr: AstExpr,
 
 fn replaceArgWithExpr(expr: *AstExpr, arg: []const u8, value: AstExpr) void {
@@ -34,23 +32,36 @@ fn replaceArgWithExpr(expr: *AstExpr, arg: []const u8, value: AstExpr) void {
 }
 
 pub fn replaceArg(self: *Self, expr: AstExpr) void {
-    replaceArgWithExpr(&self.expr, self.arg.value, expr);
+    replaceArgWithExpr(&self.expr, self.arg, expr);
 }
 
 pub fn format(
     self: Self,
     allocator: mem.Allocator,
     writer: Writer,
+    depth: usize,
 ) fmt.Error!void {
-    try fmt.print(writer, "Fn {{\n", .{});
+    var depth_tabs = std.ArrayList(u8).init(allocator);
+    defer depth_tabs.deinit();
 
-    try fmt.print(writer, "    arg: {s}\n", .{
-        self.arg.value,
+    try fmt.addDepth(&depth_tabs, depth);
+
+    try fmt.print(writer, "{s}Fn {{\n", .{
+        depth_tabs.items,
     });
 
-    try fmt.print(writer, "    expr:\n", .{});
+    try fmt.print(writer, "{s}    arg: {s}\n", .{
+        depth_tabs.items,
+        self.arg,
+    });
+
+    try fmt.print(writer, "{s}    expr:\n", .{
+        depth_tabs.items,
+    });
 
     try self.expr.format(allocator, writer, 2);
 
-    try fmt.print(writer, "}}\n", .{});
+    try fmt.print(writer, "{s}}}\n", .{
+        depth_tabs.items,
+    });
 }

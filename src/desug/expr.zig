@@ -12,6 +12,7 @@ const ast = @import("../ast.zig");
 const AstExpr = ast.expr.Expr;
 
 pub const Bind = @import("expr/Bind.zig");
+pub const Builtin = @import("expr/Builtin.zig");
 pub const File = @import("expr/File.zig");
 pub const FnCall = @import("expr/FnCall.zig");
 pub const FnDecl = @import("expr/FnDecl.zig");
@@ -23,6 +24,7 @@ pub const Expr = union(enum) {
     const Self = @This();
 
     bind: Bind,
+    builtin: Builtin,
     file: File,
     fn_call: FnCall,
     fn_decl: FnDecl,
@@ -34,6 +36,7 @@ pub const Expr = union(enum) {
 
         return switch (T) {
             Bind => .{ .bind = item },
+            Builtin => .{ .builtin = item },
             File => .{ .file = item },
             FnCall => .{ .fn_call = item },
             FnDecl => .{ .fn_decl = item },
@@ -46,6 +49,7 @@ pub const Expr = union(enum) {
     pub fn deinit(self: Self) void {
         switch (self) {
             .bind => |x| x.deinit(),
+            .builtin => |x| x.deinit(),
             .file => |x| x.deinit(),
             .fn_call => |x| x.deinit(),
             .fn_decl => |x| x.deinit(),

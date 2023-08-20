@@ -4,6 +4,8 @@ const mem = std.mem;
 
 const desug = @import("../desug.zig");
 const eval_ = @import("../eval.zig");
+const expr = @import("../expr.zig");
+const expr_eval = @import("expr.zig");
 
 const InvalidInputError = eval_.InvalidInputError;
 const Error = eval_.Error;
@@ -11,12 +13,9 @@ const Result = eval_.Result;
 
 const Scope = eval_.Scope;
 
-const expr_eval = @import("expr.zig");
-const expr = @import("../expr.zig");
-
 const AstFnCall = desug.expr.FnCall;
 
-const Expr = @import("../expr.zig").Expr;
+const Expr = expr.Expr;
 
 pub fn eval(
     allocator: mem.Allocator,
