@@ -7,26 +7,18 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../../fmt.zig");
 
-const ast = @import("../../ast.zig");
-const lexer = @import("../../lexer.zig");
+const eval = @import("../../eval.zig");
+const expr = @import("../../expr.zig");
 
-const IdentTok = lexer.Ident;
+const Expr = expr.Expr;
 
-const AstIdent = ast.expr.Ident;
+const Result = eval.Result;
 
-const expr = @import("../expr.zig");
-
-const ExprValue = expr.ExprValue;
+const Scope = eval.Scope;
 
 const Self = @This();
 
-value: ExprValue,
-
-pub fn desug(ident: AstIdent) Self {
-    return .{
-        .value = .{ .tok = ident.value },
-    };
-}
+func: *const fn (mem.Allocator, Scope) anyerror!Result(Expr),
 
 pub fn format(
     self: Self,
@@ -34,18 +26,19 @@ pub fn format(
     writer: Writer,
     depth: usize,
 ) fmt.Error!void {
+    _ = self;
+
     var depth_tabs = std.ArrayList(u8).init(allocator);
     defer depth_tabs.deinit();
 
     try fmt.addDepth(&depth_tabs, depth);
 
-    try fmt.print(writer, "{s}Ident {{\n", .{
+    try fmt.print(writer, "{s}Native {{\n", .{
         depth_tabs.items,
     });
 
-    try fmt.print(writer, "{s}    value: {s}\n", .{
+    try fmt.print(writer, "{s}    func: [fn]\n", .{
         depth_tabs.items,
-        self.value.value(),
     });
 
     try fmt.print(writer, "{s}}}\n", .{depth_tabs.items});

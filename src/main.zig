@@ -12,6 +12,8 @@ const lexer = @import("lexer.zig");
 
 const Token = lexer.Token;
 
+const Bind = desug.expr.Bind;
+
 pub fn main() !void {
     const input =
         \\fst = (x y -> x);
@@ -74,11 +76,18 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
+    var builtins_ = std.ArrayList(Bind).init(allocator);
+    defer builtins_.deinit();
+
+    inline for (builtins.builtins) |builtin| {
+        try builtins_.append(try builtin(allocator));
+    }
+
     const eval_input = "fst 10 20";
 
     const result = switch (try eval.eval(
+        builtins_,
         allocator,
-        builtins.builtins,
         desug_,
         eval_input,
     )) {

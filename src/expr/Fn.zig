@@ -24,7 +24,7 @@ fn replaceArgWithExpr(expr: *AstExpr, arg: []const u8, value: AstExpr) void {
             replaceArgWithExpr(x.expr, arg, value);
         },
         .fn_decl => |x| replaceArgWithExpr(x.expr, arg, value),
-        .ident => |x| if (mem.eql(u8, x.value.value, arg)) {
+        .ident => |x| if (mem.eql(u8, x.value.value(), arg)) {
             expr.* = value;
         },
         else => {},

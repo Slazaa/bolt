@@ -14,6 +14,8 @@ const lexer = @import("lexer.zig");
 const AstExpr = ast.expr.Expr;
 
 const DesugExpr = desug.expr.Expr;
+
+const DesugBind = desug.expr.Bind;
 const DesugFile = desug.expr.File;
 
 const eval_expr = @import("eval/expr.zig");
@@ -92,8 +94,8 @@ pub fn Result(comptime T: type) type {
 }
 
 pub fn eval(
+    builtins: std.ArrayList(DesugBind),
     allocator: mem.Allocator,
-    comptime builtins: anytype,
     file: DesugFile,
     input: []const u8,
 ) !Result(Expr) {
@@ -122,14 +124,12 @@ pub fn eval(
     var scope = Scope.init(allocator);
     defer scope.deinit();
 
-    for (builtins) |builtin| {
-        _ = builtin;
+    for (builtins.items) |builtin| {
+        try scope.put(builtin.ident.value(), builtin.expr.*);
     }
 
     for (file.binds.items) |bind| {
-        scope.put(bind.ident.value, bind.expr.*) catch {
-            @panic("Put failed");
-        };
+        try scope.put(bind.ident.value(), bind.expr.*);
     }
 
     return try eval_expr.eval(

@@ -16,12 +16,13 @@ const IdentTok = lexer.Ident;
 
 const expr = @import("../expr.zig");
 
+const ExprValue = expr.ExprValue;
 const Expr = expr.Expr;
 
 const Self = @This();
 
 allocator: mem.Allocator,
-ident: IdentTok,
+ident: ExprValue,
 expr: *Expr,
 
 pub fn deinit(self: Self) void {
@@ -35,7 +36,7 @@ pub fn desug(allocator: mem.Allocator, bind: AstBind) anyerror!Self {
 
     return .{
         .allocator = allocator,
-        .ident = bind.ident,
+        .ident = .{ .tok = bind.ident },
         .expr = expr_,
     };
 }
@@ -57,7 +58,7 @@ pub fn format(
 
     try fmt.print(writer, "{s}    ident: {s}\n", .{
         depth_tabs.items,
-        self.ident.value,
+        self.ident.value(),
     });
 
     try fmt.print(writer, "{s}    expr:\n", .{

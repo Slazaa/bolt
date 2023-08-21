@@ -8,48 +8,65 @@ const Writer = fs.File.Writer;
 const fmt = @import("../fmt.zig");
 
 const ast = @import("../ast.zig");
+const lexer = @import("../lexer.zig");
+
+const IdentTok = lexer.Ident;
 
 const AstExpr = ast.expr.Expr;
 
 pub const Bind = @import("expr/Bind.zig");
-pub const Builtin = @import("expr/Builtin.zig");
 pub const File = @import("expr/File.zig");
 pub const FnCall = @import("expr/FnCall.zig");
 pub const FnDecl = @import("expr/FnDecl.zig");
 pub const Ident = @import("expr/Ident.zig");
 pub const Literal = @import("expr/literal.zig").Literal;
+pub const Native = @import("expr/Native.zig");
+
 pub const NumLit = @import("expr/literal/NumLit.zig");
+
+pub const ExprValue = union(enum) {
+    const Self = @This();
+
+    tok: IdentTok,
+    raw: []const u8,
+
+    pub fn value(self: Self) []const u8 {
+        return switch (self) {
+            .tok => |x| x.value,
+            .raw => |x| x,
+        };
+    }
+};
 
 pub const Expr = union(enum) {
     const Self = @This();
 
     bind: Bind,
-    builtin: Builtin,
     file: File,
     fn_call: FnCall,
     fn_decl: FnDecl,
     ident: Ident,
     literal: Literal,
+    native: Native,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
 
         return switch (T) {
             Bind => .{ .bind = item },
-            Builtin => .{ .builtin = item },
             File => .{ .file = item },
             FnCall => .{ .fn_call = item },
             FnDecl => .{ .fn_decl = item },
             Ident => .{ .ident = item },
             Literal => .{ .literal = item },
-            else => @compileError("Expected expr, found " ++ @typeName(T)),
+            Native => .{ .native = item },
+            else => @panic("Expected expr, found " ++ @typeName(T)),
         };
     }
 
     pub fn deinit(self: Self) void {
         switch (self) {
             .bind => |x| x.deinit(),
-            .builtin => |x| x.deinit(),
             .file => |x| x.deinit(),
             .fn_call => |x| x.deinit(),
             .fn_decl => |x| x.deinit(),
