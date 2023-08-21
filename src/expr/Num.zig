@@ -9,7 +9,12 @@ const fmt = @import("../fmt.zig");
 
 const Self = @This();
 
-value: []const u8,
+allocator: mem.Allocator,
+value: std.ArrayList(u8),
+
+pub fn deinit(self: Self) void {
+    self.value.deinit();
+}
 
 pub fn format(
     self: Self,
@@ -25,7 +30,7 @@ pub fn format(
     try fmt.print(writer, "Num {{\n", .{});
 
     try fmt.print(writer, "    value: {s}\n", .{
-        self.value,
+        self.value.items,
     });
 
     try fmt.print(writer, "}}\n", .{});

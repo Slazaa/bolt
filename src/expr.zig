@@ -20,6 +20,13 @@ pub const Expr = union(enum) {
     @"fn": Fn,
     num: Num,
 
+    pub fn deinit(self: Self) void {
+        switch (self) {
+            .num => |x| x.deinit(),
+            else => {},
+        }
+    }
+
     pub fn format(
         self: Self,
         allocator: mem.Allocator,

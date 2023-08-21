@@ -4,7 +4,7 @@ const mem = std.mem;
 
 const desug = @import("../desug.zig");
 const eval_ = @import("../eval.zig");
-const expr = @import("expr.zig");
+const expr = @import("../expr.zig");
 
 const Result = eval_.Result;
 

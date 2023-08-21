@@ -77,13 +77,20 @@ pub fn main() !void {
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
     var builtins_ = std.ArrayList(Bind).init(allocator);
-    defer builtins_.deinit();
+
+    defer {
+        for (builtins_.items) |builtin| {
+            builtin.deinit();
+        }
+
+        builtins_.deinit();
+    }
 
     inline for (builtins.builtins) |builtin| {
         try builtins_.append(try builtin(allocator));
     }
 
-    const eval_input = "fst 10 20";
+    const eval_input = "+ 10 20";
 
     const result = switch (try eval.eval(
         builtins_,
@@ -99,6 +106,8 @@ pub fn main() !void {
             return;
         },
     };
+
+    defer result.deinit();
 
     try stdout_writer.print("Input: {s}\n", .{eval_input});
     try stdout_writer.print("Result:\n", .{});
