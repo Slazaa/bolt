@@ -20,8 +20,8 @@ pub fn main() !void {
         \\sec = (x y -> y);
     ;
 
-    const stdout = io.getStdOut();
-    const stderr = io.getStdErr();
+    const stdout = io.getStdOut().writer();
+    const stderr = io.getStdErr().writer();
 
     const stdout_writer = stdout.writer();
     const stderr_writer = stderr.writer();
@@ -90,7 +90,7 @@ pub fn main() !void {
         try builtins_.append(try builtin(allocator));
     }
 
-    const eval_input = "+ 10 20";
+    const eval_input = "fst 10 20";
 
     const result = switch (try eval.eval(
         builtins_,
