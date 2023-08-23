@@ -13,7 +13,7 @@ fac 0 = 1;
 fac n = * n (fac (- n 1));
 ```
 
-You can then evaluate `fac 5` function this way:
+You can then evaluate `fac 5` this way:
 ```
 > bolt eval example.bolt "fac 5"
 120
