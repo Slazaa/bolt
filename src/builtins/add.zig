@@ -2,16 +2,16 @@ const std = @import("std");
 
 const mem = std.mem;
 
-const desug = @import("../desug.zig");
+const ast = @import("../ast.zig");
 const eval = @import("../eval.zig");
 const expr = @import("../expr.zig");
 
-const DesugExpr = desug.expr.Expr;
+const AstExpr = ast.expr.Expr;
 
-const Bind = desug.expr.Bind;
-const FnDecl = desug.expr.FnDecl;
-const Ident = desug.expr.Ident;
-const Native = desug.expr.Native;
+const Bind = ast.expr.Bind;
+const FnDecl = ast.expr.FnDecl;
+const Ident = ast.expr.Ident;
+const Native = ast.expr.Native;
 
 const Expr = expr.Expr;
 const Num = expr.Num;
@@ -40,26 +40,26 @@ pub fn func(
 }
 
 pub fn decl(allocator: mem.Allocator) !Bind {
-    var expr1 = try allocator.create(DesugExpr);
+    var expr1 = try allocator.create(AstExpr);
     errdefer allocator.destroy(expr1);
 
-    expr1.* = DesugExpr.from(Native{ .func = func });
+    expr1.* = AstExpr.from(Native{ .func = func });
 
     errdefer expr1.deinit();
 
-    var expr2 = try allocator.create(DesugExpr);
+    var expr2 = try allocator.create(AstExpr);
     errdefer allocator.destroy(expr2);
 
-    expr2.* = DesugExpr.from(FnDecl{
+    expr2.* = AstExpr.from(FnDecl{
         .allocator = allocator,
         .arg = .{ .raw = "y" },
         .expr = expr1,
     });
 
-    var expr3 = try allocator.create(DesugExpr);
+    var expr3 = try allocator.create(AstExpr);
     errdefer allocator.destroy(expr3);
 
-    expr3.* = DesugExpr.from(FnDecl{
+    expr3.* = AstExpr.from(FnDecl{
         .allocator = allocator,
         .arg = .{ .raw = "x" },
         .expr = expr2,

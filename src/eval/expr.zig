@@ -2,10 +2,10 @@ const std = @import("std");
 
 const mem = std.mem;
 
-const desug = @import("../desug.zig");
+const ast = @import("../ast.zig");
 const eval_ = @import("../eval.zig");
 
-const AstExpr = desug.expr.Expr;
+const AstExpr = ast.expr.Expr;
 
 const Result = eval_.Result;
 

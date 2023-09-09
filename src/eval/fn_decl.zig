@@ -1,10 +1,9 @@
 const eval_ = @import("../eval.zig");
 
-const desug = @import("../desug.zig");
-
-const AstFnDecl = desug.expr.FnDecl;
-
+const ast = @import("../ast.zig");
 const expr = @import("../expr.zig");
+
+const AstFnDecl = ast.expr.FnDecl;
 
 const Fn = expr.Fn;
 

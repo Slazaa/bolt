@@ -8,15 +8,12 @@ const Writer = fs.File.Writer;
 const fmt = @import("fmt.zig");
 
 const ast = @import("ast.zig");
-const desug = @import("desug.zig");
 const lexer = @import("lexer.zig");
 
 const AstExpr = ast.expr.Expr;
 
-const DesugExpr = desug.expr.Expr;
-
-const DesugBind = desug.expr.Bind;
-const DesugFile = desug.expr.File;
+const AstBind = ast.expr.Bind;
+const AstFile = ast.expr.File;
 
 const eval_expr = @import("eval/expr.zig");
 
@@ -84,7 +81,7 @@ pub const Error = union(enum) {
     }
 };
 
-pub const Scope = std.StringArrayHashMap(DesugExpr);
+pub const Scope = std.StringArrayHashMap(AstExpr);
 
 pub fn Result(comptime T: type) type {
     return union(enum) {
@@ -94,9 +91,9 @@ pub fn Result(comptime T: type) type {
 }
 
 pub fn eval(
-    builtins: std.ArrayList(DesugBind),
+    builtins: std.ArrayList(AstBind),
     allocator: mem.Allocator,
-    file: DesugFile,
+    file: AstFile,
     input: []const u8,
 ) !Result(Expr) {
     var tokens = std.ArrayList(Token).init(allocator);
@@ -118,9 +115,6 @@ pub fn eval(
 
     defer expr_.deinit();
 
-    const desug_expr = try DesugExpr.desug(allocator, expr_);
-    defer desug_expr.deinit();
-
     var scope = Scope.init(allocator);
     defer scope.deinit();
 
@@ -135,6 +129,6 @@ pub fn eval(
     return try eval_expr.eval(
         allocator,
         scope,
-        desug_expr,
+        expr,
     );
 }

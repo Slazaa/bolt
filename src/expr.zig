@@ -5,11 +5,11 @@ const mem = std.mem;
 
 const Writer = fs.File.Writer;
 
+const ast = @import("ast.zig");
+
 const fmt = @import("fmt.zig");
 
-const desug = @import("desug.zig");
-
-const AstExpr = desug.expr.Expr;
+const AstExpr = ast.expr.Expr;
 
 pub const Fn = @import("expr/Fn.zig");
 pub const Num = @import("expr/Num.zig");

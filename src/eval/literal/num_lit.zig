@@ -3,10 +3,10 @@ const std = @import("std");
 const fmt = std.fmt;
 const mem = std.mem;
 
-const desug = @import("../../desug.zig");
+const ast = @import("../../ast.zig");
 const expr = @import("../../expr.zig");
 
-const AstNumLit = desug.expr.NumLit;
+const AstNumLit = ast.expr.NumLit;
 
 const Num = expr.Num;
 

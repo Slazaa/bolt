@@ -2,7 +2,7 @@ const std = @import("std");
 
 const mem = std.mem;
 
-const desug = @import("../desug.zig");
+const ast = @import("../ast.zig");
 const eval_ = @import("../eval.zig");
 const expr = @import("../expr.zig");
 const expr_eval = @import("expr.zig");
@@ -13,7 +13,7 @@ const Result = eval_.Result;
 
 const Scope = eval_.Scope;
 
-const AstFnCall = desug.expr.FnCall;
+const AstFnCall = ast.expr.FnCall;
 
 const Expr = expr.Expr;
 

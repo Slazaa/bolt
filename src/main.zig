@@ -6,13 +6,12 @@ const io = std.io;
 
 const ast = @import("ast.zig");
 const builtins = @import("builtins.zig");
-const desug = @import("desug.zig");
 const eval = @import("eval.zig");
 const lexer = @import("lexer.zig");
 
-const Token = lexer.Token;
+const Bind = ast.expr.Bind;
 
-const Bind = desug.expr.Bind;
+const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
@@ -20,8 +19,8 @@ pub fn main() !void {
         \\sec = (x y -> y);
     ;
 
-    const stdout = io.getStdOut().writer();
-    const stderr = io.getStdErr().writer();
+    const stdout = io.getStdOut();
+    const stderr = io.getStdErr();
 
     const stdout_writer = stdout.writer();
     const stderr_writer = stderr.writer();
@@ -67,13 +66,6 @@ pub fn main() !void {
 
     try ast_.format(allocator, stdout_writer, 0);
 
-    try stdout_writer.writeAll("\n--- Desug ---\n");
-
-    const desug_ = try desug.desug(allocator, ast_);
-    defer desug_.deinit();
-
-    try desug_.format(allocator, stdout_writer, 0);
-
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
     var builtins_ = std.ArrayList(Bind).init(allocator);
@@ -95,7 +87,7 @@ pub fn main() !void {
     const result = switch (try eval.eval(
         builtins_,
         allocator,
-        desug_,
+        ast_,
         eval_input,
     )) {
         .ok => |x| x,

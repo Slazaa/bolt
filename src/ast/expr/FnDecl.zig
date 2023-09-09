@@ -8,7 +8,6 @@ const Writer = fs.File.Writer;
 const fmt = @import("../../fmt.zig");
 
 const lexer = @import("../../lexer.zig");
-
 const ast = @import("../../ast.zig");
 
 const Error = ast.Error;
@@ -23,28 +22,21 @@ const IdentTok = lexer.Ident;
 const Self = @This();
 
 allocator: mem.Allocator,
-args: std.ArrayList(IdentTok),
+args: IdentTok,
 expr: *Expr,
 
-fn deinitArgs(args: std.ArrayList(IdentTok)) void {
-    args.deinit();
-}
-
-fn deinitExpr(allocator: mem.Allocator, expr: *Expr) void {
-    expr.deinit();
-    allocator.destroy(expr);
-}
-
 pub fn deinit(self: Self) void {
-    deinitArgs(self.args);
-    deinitExpr(self.allocator, self.expr);
+    self.args.deinit();
+
+    self.expr.deinit();
+    self.allocator.destroy(self.expr);
 }
 
 pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Self) {
     var input_ = input.*;
 
     var args = std.ArrayList(IdentTok).init(allocator);
-    errdefer deinitArgs(args);
+    defer args.deinit();
 
     while (input_.len != 0) {
         const arg = switch (input_[0]) {
@@ -58,7 +50,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     if (args.items.len == 0) {
-        deinitArgs(args);
+        args.deinit();
 
         return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
@@ -67,7 +59,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     if (input_.len == 0) {
-        deinitArgs(args);
+        args.deinit();
 
         return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
@@ -76,13 +68,13 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     {
-        const found_arr = switch (input_[0]) {
+        const found_slice = switch (input_[0]) {
             .punct => |x| mem.eql(u8, x.value, "->"),
             else => false,
         };
 
-        if (!found_arr) {
-            deinitArgs(args);
+        if (!found_slice) {
+            args.deinit();
 
             return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
@@ -94,25 +86,41 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     const expr = try allocator.create(Expr);
+    errdefer allocator.destroy(expr);
 
     expr.* = switch (try Expr.parse(allocator, &input_)) {
         .ok => |x| x,
         .err => |e| {
             allocator.destroy(expr);
-            deinitArgs(args);
+            args.deinit();
 
             return .{ .err = e };
         },
     };
 
-    errdefer deinitExpr(allocator, expr);
+    errdefer expr.deinit();
+
+    var curr_expr = expr;
+
+    for (args.items[1..]) |arg| {
+        const new_curr_expr = try allocator.create(Expr);
+        errdefer allocator.destroy(new_curr_expr);
+
+        new_curr_expr.* = Expr.from(Self{
+            .allocator = allocator,
+            .arg = arg,
+            .expr = curr_expr,
+        });
+
+        curr_expr = new_curr_expr;
+    }
 
     input.* = input_;
 
     return .{ .ok = .{
         .allocator = allocator,
-        .args = args,
-        .expr = expr,
+        .arg = args[0],
+        .expr = curr_expr,
     } };
 }
 

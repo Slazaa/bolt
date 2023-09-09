@@ -7,10 +7,10 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../fmt.zig");
 
-const desug = @import("../desug.zig");
+const ast = @import("../ast.zig");
 const lexer = @import("../lexer.zig");
 
-const AstExpr = desug.expr.Expr;
+const AstExpr = ast.expr.Expr;
 
 const Self = @This();
 
