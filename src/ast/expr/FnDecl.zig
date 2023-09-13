@@ -22,12 +22,10 @@ const IdentTok = lexer.Ident;
 const Self = @This();
 
 allocator: mem.Allocator,
-args: IdentTok,
+arg: IdentTok,
 expr: *Expr,
 
 pub fn deinit(self: Self) void {
-    self.args.deinit();
-
     self.expr.deinit();
     self.allocator.destroy(self.expr);
 }
@@ -119,7 +117,7 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
 
     return .{ .ok = .{
         .allocator = allocator,
-        .arg = args[0],
+        .arg = args.items[0],
         .expr = curr_expr,
     } };
 }
@@ -143,12 +141,10 @@ pub fn format(
         depth_tabs.items,
     });
 
-    for (self.args.items) |arg| {
-        try fmt.print(writer, "{s}        {s}\n", .{
-            depth_tabs.items,
-            arg.value,
-        });
-    }
+    try fmt.print(writer, "{s}        {s}\n", .{
+        depth_tabs.items,
+        self.arg.value,
+    });
 
     try fmt.print(writer, "{s}    ]\n", .{
         depth_tabs.items,

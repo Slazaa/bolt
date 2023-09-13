@@ -24,21 +24,26 @@ pub fn eval(
     scope: Scope,
     ident: AstIdent,
 ) !Result(Expr) {
-    if (scope.get(ident.value.value())) |expr_| {
-        switch (try eval_expr.eval(
-            allocator,
-            scope,
-            expr_,
-        )) {
-            .ok => |x| return .{ .ok = x },
-            .err => |e| return .{ .err = e },
-        }
+    if (scope.get(ident.value.value)) |scope_item| {
+        return .{
+            .ok = switch (scope_item) {
+                .node => |n| switch (try eval_expr.eval(
+                    allocator,
+                    scope,
+                    n,
+                )) {
+                    .ok => |x| x,
+                    .err => |e| return .{ .err = e },
+                },
+                .expr => |e| e,
+            },
+        };
     }
 
     var message = std.ArrayList(u8).init(allocator);
 
     try message.appendSlice("Unknown Ident: '");
-    try message.appendSlice(ident.value.value());
+    try message.appendSlice(ident.value.value);
     try message.appendSlice("'");
 
     return .{ .err = Error.from(InvalidInputError{

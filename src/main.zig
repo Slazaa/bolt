@@ -7,9 +7,12 @@ const io = std.io;
 const ast = @import("ast.zig");
 const builtins = @import("builtins.zig");
 const eval = @import("eval.zig");
+const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
 const Bind = ast.expr.Bind;
+
+const Expr = expr.Expr;
 
 const Token = lexer.Token;
 
@@ -68,18 +71,11 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    var builtins_ = std.ArrayList(Bind).init(allocator);
-
-    defer {
-        for (builtins_.items) |builtin| {
-            builtin.deinit();
-        }
-
-        builtins_.deinit();
-    }
+    var builtins_ = std.StringArrayHashMap(Expr).init(allocator);
+    defer builtins_.deinit();
 
     inline for (builtins.builtins) |builtin| {
-        try builtins_.append(try builtin(allocator));
+        try builtins_.put(builtin[0], Expr.from(builtin[1]));
     }
 
     const eval_input = "fst 10 20";

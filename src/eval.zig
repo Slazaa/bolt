@@ -81,7 +81,10 @@ pub const Error = union(enum) {
     }
 };
 
-pub const Scope = std.StringArrayHashMap(AstExpr);
+pub const Scope = std.StringArrayHashMap(union(enum) {
+    node: AstExpr,
+    expr: Expr,
+});
 
 pub fn Result(comptime T: type) type {
     return union(enum) {
@@ -91,7 +94,7 @@ pub fn Result(comptime T: type) type {
 }
 
 pub fn eval(
-    builtins: std.ArrayList(AstBind),
+    builtins: std.StringArrayHashMap(Expr),
     allocator: mem.Allocator,
     file: AstFile,
     input: []const u8,
@@ -118,17 +121,24 @@ pub fn eval(
     var scope = Scope.init(allocator);
     defer scope.deinit();
 
-    for (builtins.items) |builtin| {
-        try scope.put(builtin.ident.value(), builtin.expr.*);
+    {
+        var iter = builtins.iterator();
+
+        while (iter.next()) |entry| {
+            try scope.put(
+                entry.key_ptr.*,
+                .{ .expr = entry.value_ptr.* },
+            );
+        }
     }
 
     for (file.binds.items) |bind| {
-        try scope.put(bind.ident.value(), bind.expr.*);
+        try scope.put(bind.ident.value, .{ .node = bind.expr.* });
     }
 
     return try eval_expr.eval(
         allocator,
         scope,
-        expr,
+        expr_,
     );
 }
