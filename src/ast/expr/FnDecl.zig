@@ -48,8 +48,6 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     if (args.items.len == 0) {
-        args.deinit();
-
         return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected at least 1 arg, found nothing",
@@ -57,8 +55,6 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     if (input_.len == 0) {
-        args.deinit();
-
         return .{ .err = Error.from(try InvalidInputError.init(
             allocator,
             "Expected '->', found nothing",
@@ -72,8 +68,6 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
         };
 
         if (!found_slice) {
-            args.deinit();
-
             return .{ .err = Error.from(try InvalidInputError.init(
                 allocator,
                 "Expected '->'",
@@ -90,8 +84,6 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
         .ok => |x| x,
         .err => |e| {
             allocator.destroy(expr);
-            args.deinit();
-
             return .{ .err = e };
         },
     };

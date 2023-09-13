@@ -18,8 +18,8 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\fst = (x y -> x);
-        \\sec = (x y -> y);
+        \\fst = x y -> x;
+        \\sec = x y -> y;
     ;
 
     const stdout = io.getStdOut();
@@ -78,7 +78,7 @@ pub fn main() !void {
         try builtins_.put(builtin[0], Expr.from(builtin[1]));
     }
 
-    const eval_input = "fst 10 20";
+    const eval_input = "sec 10 20";
 
     const result = switch (try eval.eval(
         builtins_,
