@@ -17,7 +17,7 @@ const fn_call = @import("fn_call.zig");
 const fn_decl = @import("fn_decl.zig");
 const ident = @import("ident.zig");
 const literal = @import("literal.zig");
-const native = @import("native.zig");
+const nat_fn = @import("nat_fn.zig");
 
 const Expr = @import("../expr.zig").Expr;
 
@@ -32,7 +32,9 @@ pub fn eval(
             scope,
             x,
         ),
-        .fn_decl => |x| .{ .ok = .{ .@"fn" = fn_decl.eval(x) } },
+        .fn_decl => |x| .{ .ok = .{
+            .@"fn" = fn_decl.eval(x),
+        } },
         .ident => |x| try ident.eval(
             allocator,
             scope,
@@ -41,6 +43,11 @@ pub fn eval(
         .literal => |x| .{
             .ok = try literal.eval(allocator, x),
         },
+        .nat_fn => |x| try nat_fn.eval(
+            allocator,
+            scope,
+            x,
+        ),
         inline else => |x| {
             @panic("Not supported Expr, found " ++ @typeName(@TypeOf(x)));
         },

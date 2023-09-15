@@ -10,14 +10,15 @@ const Result = eval_.Result;
 
 const Scope = eval_.Scope;
 
-const AstNative = ast.expr.Native;
+const AstNatFn = ast.expr.NatFn;
 
 const Expr = expr.Expr;
 
 pub fn eval(
     allocator: mem.Allocator,
     scope: Scope,
-    native: AstNative,
+    nat_fn: AstNatFn,
 ) !Result(Expr) {
-    return try native.func(allocator, scope);
+    _ = allocator;
+    return try nat_fn.func(scope);
 }

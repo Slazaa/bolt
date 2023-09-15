@@ -25,18 +25,13 @@ pub fn eval(
     ident: AstIdent,
 ) !Result(Expr) {
     if (scope.get(ident.value.value)) |scope_item| {
-        return .{
-            .ok = switch (scope_item) {
-                .node => |n| switch (try eval_expr.eval(
-                    allocator,
-                    scope,
-                    n,
-                )) {
-                    .ok => |x| x,
-                    .err => |e| return .{ .err = e },
-                },
-                .expr => |e| e,
-            },
+        return switch (try eval_expr.eval(
+            allocator,
+            scope,
+            scope_item,
+        )) {
+            .ok => |x| .{ .ok = x },
+            .err => |e| .{ .err = e },
         };
     }
 

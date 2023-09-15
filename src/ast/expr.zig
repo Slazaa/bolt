@@ -23,8 +23,11 @@ pub const File = @import("expr/File.zig");
 pub const FnCall = @import("expr/FnCall.zig");
 pub const FnDecl = @import("expr/FnDecl.zig");
 pub const Ident = @import("expr/Ident.zig");
+
 pub const Literal = @import("expr/literal.zig").Literal;
 pub const NumLit = @import("expr/literal/NumLit.zig");
+
+pub const NatFn = @import("expr/NatFn.zig");
 
 pub const parent = @import("parent.zig");
 
@@ -37,6 +40,7 @@ pub const Expr = union(enum) {
     fn_decl: FnDecl,
     ident: Ident,
     literal: Literal,
+    nat_fn: NatFn,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
@@ -48,6 +52,7 @@ pub const Expr = union(enum) {
             FnDecl => .{ .fn_decl = item },
             Ident => .{ .ident = item },
             Literal => .{ .literal = item },
+            NatFn => .{ .nat_fn = item },
             else => @panic("Expected Expr, found " ++ @typeName(T)),
         };
     }

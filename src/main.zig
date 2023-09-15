@@ -10,9 +10,7 @@ const eval = @import("eval.zig");
 const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
-const Bind = ast.expr.Bind;
-
-const Expr = expr.Expr;
+const AstExpr = ast.expr.Expr;
 
 const Token = lexer.Token;
 
@@ -71,14 +69,17 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    var builtins_ = std.StringArrayHashMap(Expr).init(allocator);
+    var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
     defer builtins_.deinit();
 
     inline for (builtins.builtins) |builtin| {
-        try builtins_.put(builtin[0], Expr.from(builtin[1]));
+        try builtins_.put(
+            builtin[0],
+            AstExpr.from(try builtin[1](allocator)),
+        );
     }
 
-    const eval_input = "sec 10 20";
+    const eval_input = "+ 10 20";
 
     const result = switch (try eval.eval(
         builtins_,
