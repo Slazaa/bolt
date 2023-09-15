@@ -23,10 +23,12 @@ value: Literal,
 
 pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     if (input.len == 0) {
-        return .{ .err = Error.from(try InvalidInput.init(
-            allocator,
-            "Expected NumLit, found nothing",
-        )) };
+        return .{
+            .err = Error.from(try InvalidInput.init(
+                allocator,
+                "Expected NumLit, found nothing",
+            )),
+        };
     }
 
     var value: ?Literal = null;

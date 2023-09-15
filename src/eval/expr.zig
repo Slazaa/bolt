@@ -43,11 +43,11 @@ pub fn eval(
         .literal => |x| .{
             .ok = try literal.eval(allocator, x),
         },
-        .nat_fn => |x| try nat_fn.eval(
-            allocator,
-            scope,
-            x,
-        ),
+        // .nat_fn => |x| try nat_fn.eval(
+        //     allocator,
+        //     scope,
+        //     x,
+        // ),
         inline else => |x| {
             @panic("Not supported Expr, found " ++ @typeName(@TypeOf(x)));
         },

@@ -18,7 +18,7 @@ const Scope = eval.Scope;
 
 const Self = @This();
 
-func: *const fn (Scope) anyerror!Result(Expr),
+func: *const anyopaque,
 
 pub fn format(
     self: Self,

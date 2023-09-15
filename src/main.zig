@@ -5,6 +5,7 @@ const heap = std.heap;
 const io = std.io;
 
 const ast = @import("ast.zig");
+const builtin = @import("builtin.zig");
 const builtins = @import("builtins.zig");
 const eval = @import("eval.zig");
 const expr = @import("expr.zig");
@@ -72,14 +73,22 @@ pub fn main() !void {
     var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
     defer builtins_.deinit();
 
-    inline for (builtins.builtins) |builtin| {
+    defer {
+        var builtins_iter = builtins_.iterator();
+
+        while (builtins_iter.next()) |builtin_| {
+            builtin_.value_ptr.deinit();
+        }
+    }
+
+    inline for (builtins.builtins) |builtin_| {
         try builtins_.put(
-            builtin[0],
-            AstExpr.from(try builtin[1](allocator)),
+            builtin_[0],
+            try builtin.decl(allocator, builtin_[1]),
         );
     }
 
-    const eval_input = "+ 10 20";
+    const eval_input = "sec 10 20";
 
     const result = switch (try eval.eval(
         builtins_,
