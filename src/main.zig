@@ -11,6 +11,7 @@ const eval = @import("eval.zig");
 const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
+const AstErrorInfo = ast.ErrorInfo;
 const AstExpr = ast.expr.Expr;
 
 const Token = lexer.Token;
@@ -51,17 +52,18 @@ pub fn main() !void {
 
     try stdout_writer.writeAll("\n--- AST ---\n");
 
-    var ast_ = switch (try ast.parse(
-        allocator,
-        tokens.items,
-    )) {
-        .ok => |x| x,
-        .err => |e| {
-            try e.format(stderr_writer);
-            e.deinit();
+    var ast_ = b: {
+        var err_info: AstErrorInfo = undefined;
+        defer err_info.deinit();
 
-            return;
-        },
+        break :b ast.parse(
+            allocator,
+            tokens.items,
+            &err_info,
+        ) catch |err| {
+            try err_info.format(stderr_writer);
+            return err;
+        };
     };
 
     defer ast_.deinit();

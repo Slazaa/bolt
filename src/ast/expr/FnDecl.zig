@@ -7,11 +7,10 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../../fmt.zig");
 
-const lexer = @import("../../lexer.zig");
 const ast = @import("../../ast.zig");
+const lexer = @import("../../lexer.zig");
 
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Expr = ast.expr.Expr;
@@ -30,7 +29,11 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) anyerror!Self {
     var input_ = input.*;
 
     var args = std.ArrayList(IdentTok).init(allocator);
@@ -48,17 +51,25 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     }
 
     if (args.items.len == 0) {
-        return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected at least 1 arg, found nothing",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInputError.init(
+                allocator,
+                "Expected at least 1 arg, found nothing",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     if (input_.len == 0) {
-        return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected '->', found nothing",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInputError.init(
+                allocator,
+                "Expected '->', found nothing",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     {
@@ -68,10 +79,14 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
         };
 
         if (!found_slice) {
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected '->'",
-            )) };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected '->'",
+                ));
+            }
+
+            return error.InvalidInput;
         }
 
         input_ = input_[1..];
@@ -80,13 +95,11 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
     const expr = try allocator.create(Expr);
     errdefer allocator.destroy(expr);
 
-    expr.* = switch (try Expr.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(expr);
-            return .{ .err = e };
-        },
-    };
+    expr.* = try Expr.parse(
+        allocator,
+        &input_,
+        err_info,
+    );
 
     errdefer expr.deinit();
 
@@ -107,11 +120,11 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) anyerror!Result(Se
 
     input.* = input_;
 
-    return .{ .ok = .{
+    return .{
         .allocator = allocator,
         .arg = args.items[0],
         .expr = curr_expr,
-    } };
+    };
 }
 
 pub fn format(

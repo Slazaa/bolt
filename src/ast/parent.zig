@@ -3,28 +3,33 @@ const std = @import("std");
 const mem = std.mem;
 
 const ast = @import("../ast.zig");
+const expr = @import("expr.zig");
 const lexer = @import("../lexer.zig");
 
-const Result = ast.Result;
-const Error = ast.Error;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Token = lexer.Token;
 
-const Expr = @import("expr.zig").Expr;
+const Expr = expr.Expr;
 
 pub fn parse(
     allocator: mem.Allocator,
     input: *[]const Token,
-) anyerror!Result(Expr) {
+    err_info: ?*ErrorInfo,
+) anyerror!Expr {
     var input_ = input.*;
 
     {
         if (input_.len == 0) {
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected '(', found nothing",
-            )) };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected '(', found nothing",
+                ));
+            }
+
+            return error.InvalidInput;
         }
 
         const found_parent = switch (input_[0]) {
@@ -33,28 +38,37 @@ pub fn parse(
         };
 
         if (!found_parent) {
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected '('",
-            )) };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected '('",
+                ));
+            }
+
+            return error.InvalidInput;
         }
 
         input_ = input_[1..];
     }
 
-    const expr = switch (try Expr.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = e },
-    };
+    const expr_ = try Expr.parse(
+        allocator,
+        &input_,
+        err_info,
+    );
 
-    errdefer expr.deinit();
+    errdefer expr_.deinit();
 
     {
         if (input_.len == 0) {
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected ')', found nothing",
-            )) };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected ')', found nothing",
+                ));
+            }
+
+            return error.InvalidInput;
         }
 
         const found_parent = switch (input_[0]) {
@@ -63,12 +77,14 @@ pub fn parse(
         };
 
         if (!found_parent) {
-            expr.deinit();
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected ')'",
+                ));
+            }
 
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected ')'",
-            )) };
+            return error.InvalidInput;
         }
 
         input_ = input_[1..];
@@ -76,5 +92,5 @@ pub fn parse(
 
     input.* = input_;
 
-    return .{ .ok = expr };
+    return expr_;
 }

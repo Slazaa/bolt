@@ -10,8 +10,7 @@ const lexer = @import("../../../lexer.zig");
 
 const ast = @import("../../../ast.zig");
 
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInput = ast.InvalidInputError;
 
 const Token = lexer.Token;
@@ -21,14 +20,20 @@ const Self = @This();
 
 value: Literal,
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) !Self {
     if (input.len == 0) {
-        return .{
-            .err = Error.from(try InvalidInput.init(
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInput.init(
                 allocator,
                 "Expected NumLit, found nothing",
-            )),
-        };
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     var value: ?Literal = null;
@@ -41,19 +46,21 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     }
 
     if (value == null) {
-        return .{ .err = Error.from(try InvalidInput.init(
-            allocator,
-            "Expected NumLit",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInput.init(
+                allocator,
+                "Expected NumLit",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     const value_ = value.?;
 
     input.* = input.*[1..];
 
-    return .{ .ok = .{
-        .value = value_,
-    } };
+    return .{ .value = value_ };
 }
 
 pub fn format(

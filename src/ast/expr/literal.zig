@@ -11,8 +11,7 @@ const lexer = @import("../../lexer.zig");
 
 const ast = @import("../../ast.zig");
 
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Token = lexer.Token;
@@ -33,22 +32,29 @@ pub const Literal = union(enum) {
         };
     }
 
-    pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+    pub fn parse(
+        allocator: mem.Allocator,
+        input: *[]const Token,
+        err_info: ?*ErrorInfo,
+    ) !Self {
         const parsers = .{
             NumLit.parse,
         };
 
         inline for (parsers) |parser| {
-            switch (try parser(allocator, input)) {
-                .ok => |x| return .{ .ok = Self.from(x) },
-                .err => |e| e.deinit(),
-            }
+            if (parser(allocator, input, null)) |lit| {
+                return Self.from(lit);
+            } else |_| {}
         }
 
-        return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Could not parse Literal",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInputError.init(
+                allocator,
+                "Could not parse Literal",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     pub fn format(

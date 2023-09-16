@@ -8,15 +8,13 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../fmt.zig");
 
+const ast = @import("../ast.zig");
 const lexer = @import("../lexer.zig");
 
-const Token = lexer.Token;
-
-const ast = @import("../ast.zig");
-
-const Result = ast.Result;
-const Error = ast.Error;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
+
+const Token = lexer.Token;
 
 pub const Bind = @import("expr/Bind.zig");
 pub const File = @import("expr/File.zig");
@@ -70,12 +68,17 @@ pub const Expr = union(enum) {
     pub fn parse(
         allocator: mem.Allocator,
         input: *[]const Token,
-    ) !Result(Expr) {
+        err_info: ?*ErrorInfo,
+    ) !Expr {
         if (input.len == 0) {
-            return .{ .err = Error.from(InvalidInputError.init(
-                allocator,
-                "Expected Expr, found nothing",
-            )) };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(InvalidInputError.init(
+                    allocator,
+                    "Expected Expr, found nothing",
+                ));
+            }
+
+            return error.InvalidInput;
         }
 
         const parsers = .{
@@ -95,16 +98,18 @@ pub const Expr = union(enum) {
 
         expr_loop: while (input.len != 0) {
             const expr = b: {
-                switch (try parent.parse(allocator, input)) {
-                    .ok => |x| break :b x,
-                    .err => |e| e.deinit(),
-                }
+                if (parent.parse(
+                    allocator,
+                    input,
+                    null,
+                )) |expr_| {
+                    break :b expr_;
+                } else |_| {}
 
                 inline for (parsers) |parser| {
-                    switch (try parser(allocator, input)) {
-                        .ok => |x| break :b Self.from(x),
-                        .err => |e| e.deinit(),
-                    }
+                    if (parser(allocator, input, null)) |expr_| {
+                        break :b Self.from(expr_);
+                    } else |_| {}
                 }
 
                 break :expr_loop;
@@ -117,17 +122,14 @@ pub const Expr = union(enum) {
             const func = exprs.items[0];
             const expr = exprs.orderedRemove(1);
 
-            exprs.items[0] = switch (try FnCall.parse(
+            exprs.items[0] = Self.from(try FnCall.parse(
                 allocator,
                 func,
                 expr,
-            )) {
-                .ok => |x| Self.from(x),
-                .err => |e| return .{ .err = e },
-            };
+            ));
         }
 
-        return .{ .ok = exprs.items[0] };
+        return exprs.items[0];
     }
 
     pub fn format(

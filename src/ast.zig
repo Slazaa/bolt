@@ -42,27 +42,16 @@ pub const InvalidInputError = struct {
     }
 };
 
-pub const InputLeftError = struct {
-    const Self = @This();
-
-    pub fn format(self: Self, writer: Writer) fmt.Error!void {
-        _ = self;
-        try fmt.print(writer, "Input left\n", .{});
-    }
-};
-
-pub const Error = union(enum) {
+pub const ErrorInfo = union(enum) {
     const Self = @This();
 
     invalid_input: InvalidInputError,
-    input_left: InputLeftError,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
 
         return switch (T) {
             InvalidInputError => .{ .invalid_input = item },
-            InputLeftError => .{ .input_left = item },
             else => @panic("Expected Expr, found " ++ @typeName(T)),
         };
     }
@@ -81,24 +70,29 @@ pub const Error = union(enum) {
     }
 };
 
-pub fn Result(comptime T: type) type {
-    return union(enum) {
-        ok: T,
-        err: Error,
-    };
-}
-
-pub fn parse(allocator: mem.Allocator, input: []const Token) !Result(File) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: []const Token,
+    err_info: ?*ErrorInfo,
+) !File {
     var input_ = input;
 
-    const expr_ = switch (try File.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = e },
+    const expr_ = b: {
+        var err_info_: ErrorInfo = undefined;
+
+        break :b File.parse(
+            allocator,
+            &input_,
+            if (err_info) |_| &err_info_ else null,
+        ) catch |err| {
+            if (err_info) |info| info.* = err_info_;
+            return err;
+        };
     };
 
     if (input_.len != 0) {
-        return .{ .err = .input_left };
+        return error.InputLeft;
     }
 
-    return .{ .ok = expr_ };
+    return expr_;
 }

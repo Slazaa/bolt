@@ -7,12 +7,10 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../../fmt.zig");
 
+const ast = @import("../../ast.zig");
 const lexer = @import("../../lexer.zig");
 
-const ast = @import("../../ast.zig");
-
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Expr = ast.expr.Expr;
@@ -28,73 +26,96 @@ ident: IdentTok,
 args: std.ArrayList(Expr),
 expr: *Expr,
 
-fn deinitArgs(args: std.ArrayList(Expr)) void {
-    for (args.items) |arg| {
+pub fn deinit(self: Self) void {
+    for (self.args.items) |arg| {
         arg.deinit();
     }
 
-    args.deinit();
+    self.args.deinit();
+
+    self.expr.deinit();
+    self.allocator.destroy(self.expr);
 }
 
-fn deinitExpr(allocator: mem.Allocator, expr: *Expr) void {
-    expr.deinit();
-    allocator.destroy(expr);
-}
-
-pub fn deinit(self: Self) void {
-    deinitArgs(self.args);
-    deinitExpr(self.allocator, self.expr);
-}
-
-fn parseArg(allocator: mem.Allocator, input: *[]const Token) !?Expr {
+fn parseArg(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) !?Expr {
     const parsers = .{
         Ident.parse,
     };
 
     inline for (parsers) |parser| {
-        switch (try parser(allocator, input)) {
-            .ok => |x| return Expr.from(x),
-            .err => |e| e.deinit(),
-        }
+        if (parser(allocator, input, err_info)) |arg| {
+            return Expr.from(arg);
+        } else |_| {}
     }
 
     return null;
 }
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) !Self {
     var input_ = input.*;
 
     if (input_.len == 0) {
-        return .{ .err = Error.from(InvalidInputError.init(
-            allocator,
-            "Expected Ident, found nothing",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(InvalidInputError.init(
+                allocator,
+                "Expected Ident, found nothing",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     const ident = switch (input_[0]) {
         .ident => |x| x,
-        else => return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected Ident",
-        )) },
+        else => {
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected Ident",
+                ));
+            }
+
+            return error.InvalidInput;
+        },
     };
 
     input_ = input_[1..];
 
     var args = std.ArrayList(Expr).init(allocator);
-    errdefer deinitArgs(args);
 
-    while (try parseArg(allocator, &input_)) |arg| {
+    errdefer {
+        for (args.items) |arg| {
+            arg.deinit();
+        }
+
+        args.deinit();
+    }
+
+    while (try parseArg(
+        allocator,
+        &input_,
+        err_info,
+    )) |arg| {
         try args.append(arg);
     }
 
     if (input_.len == 0) {
-        deinitArgs(args);
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInputError.init(
+                allocator,
+                "Expected '=', found nothing",
+            ));
+        }
 
-        return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected '=', found nothing",
-        )) };
+        return error.InvalidInput;
     }
 
     {
@@ -104,16 +125,14 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
         };
 
         if (!found_eql) {
-            for (args.items) |arg| {
-                arg.deinit();
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected '='",
+                ));
             }
 
-            args.deinit();
-
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected '='",
-            )) };
+            return error.InvalidInput;
         }
 
         input_ = input_[1..];
@@ -121,26 +140,28 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
 
     const expr = try allocator.create(Expr);
 
-    expr.* = switch (try Expr.parse(allocator, &input_)) {
-        .ok => |x| x,
-        .err => |e| {
-            allocator.destroy(expr);
-            deinitArgs(args);
-
-            return .{ .err = e };
-        },
+    expr.* = Expr.parse(
+        allocator,
+        &input_,
+        if (err_info) |info| info else null,
+    ) catch |err| {
+        return err;
     };
 
-    errdefer deinitExpr(allocator, expr);
+    errdefer {
+        expr.deinit();
+        allocator.destroy(expr);
+    }
 
     if (input.len == 0) {
-        deinitExpr(allocator, expr);
-        deinitArgs(args);
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(try InvalidInputError.init(
+                allocator,
+                "Expected ';', found nothing",
+            ));
+        }
 
-        return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected ';', found nothing",
-        )) };
+        return error.InvalidInput;
     }
 
     {
@@ -150,13 +171,14 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
         };
 
         if (!found_semi) {
-            deinitExpr(allocator, expr);
-            deinitArgs(args);
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "expected ';'",
+                ));
+            }
 
-            return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "expected ';'",
-            )) };
+            return error.InvalidInput;
         }
 
         input_ = input_[1..];
@@ -164,12 +186,12 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
 
     input.* = input_;
 
-    return .{ .ok = .{
+    return .{
         .allocator = allocator,
         .ident = ident,
         .args = args,
         .expr = expr,
-    } };
+    };
 }
 
 pub fn format(

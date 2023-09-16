@@ -9,8 +9,7 @@ const lexer = @import("../../lexer.zig");
 
 const ast = @import("../../ast.zig");
 
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Token = lexer.Token;
@@ -20,27 +19,39 @@ const Self = @This();
 
 value: Ident,
 
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) !Self {
     if (input.len == 0) {
-        return .{ .err = Error.from(InvalidInputError.init(
-            allocator,
-            "Expected Ident, found nothing",
-        )) };
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(InvalidInputError.init(
+                allocator,
+                "Expected Ident, found nothing",
+            ));
+        }
+
+        return error.InvalidInput;
     }
 
     const value = switch (input.*[0]) {
         .ident => |x| x,
-        else => return .{ .err = Error.from(try InvalidInputError.init(
-            allocator,
-            "Expected Ident",
-        )) },
+        else => {
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected Ident",
+                ));
+            }
+
+            return error.InvalidInput;
+        },
     };
 
     input.* = input.*[1..];
 
-    return .{ .ok = .{
-        .value = value,
-    } };
+    return .{ .value = value };
 }
 
 pub fn format(

@@ -10,7 +10,7 @@ const lexer = @import("../../lexer.zig");
 
 const ast = @import("../../ast.zig");
 
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 
 const Token = lexer.Token;
 
@@ -20,33 +20,35 @@ const Self = @This();
 
 binds: std.ArrayList(Bind),
 
-fn deinitBinds(binds: std.ArrayList(Bind)) void {
-    for (binds.items) |bind| {
+pub fn deinit(self: Self) void {
+    for (self.binds.items) |bind| {
         bind.deinit();
     }
 
-    binds.deinit();
+    self.binds.deinit();
 }
 
-pub fn deinit(self: Self) void {
-    deinitBinds(self.binds);
-}
-
-pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    input: *[]const Token,
+    err_info: ?*ErrorInfo,
+) !Self {
     var binds = std.ArrayList(Bind).init(allocator);
-    errdefer deinitBinds(binds);
+
+    errdefer {
+        for (binds.items) |bind| {
+            bind.deinit();
+        }
+
+        binds.deinit();
+    }
 
     while (input.len != 0) {
-        const bind = switch (try Bind.parse(
+        const bind = try Bind.parse(
             allocator,
             input,
-        )) {
-            .ok => |x| x,
-            .err => |e| {
-                deinitBinds(binds);
-                return .{ .err = e };
-            },
-        };
+            err_info,
+        );
 
         errdefer bind.deinit();
 
@@ -54,13 +56,10 @@ pub fn parse(allocator: mem.Allocator, input: *[]const Token) !Result(Self) {
     }
 
     if (input.len != 0) {
-        deinitBinds(binds);
-        return .{ .err = .input_left };
+        return error.InputLeft;
     }
 
-    return .{ .ok = .{
-        .binds = binds,
-    } };
+    return .{ .binds = binds };
 }
 
 pub fn format(

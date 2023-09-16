@@ -7,12 +7,10 @@ const Writer = fs.File.Writer;
 
 const fmt = @import("../../fmt.zig");
 
+const ast = @import("../../ast.zig");
 const lexer = @import("../../lexer.zig");
 
-const ast = @import("../../ast.zig");
-
-const Error = ast.Error;
-const Result = ast.Result;
+const ErrorInfo = ast.ErrorInfo;
 const InvalidInputError = ast.InvalidInputError;
 
 const Expr = ast.expr.Expr;
@@ -41,22 +39,26 @@ pub fn deinit(self: Self) void {
     deinitExpr(self.allocator, self.expr);
 }
 
-pub fn parse(allocator: mem.Allocator, func: Expr, expr: Expr) !Result(Self) {
+pub fn parse(
+    allocator: mem.Allocator,
+    func: Expr,
+    expr: Expr,
+) !Self {
     const func_ = try allocator.create(Expr);
+    errdefer allocator.destroy(func);
+
     func_.* = func;
 
-    errdefer deinitFunc(allocator, func_);
-
     const expr_ = try allocator.create(Expr);
+    errdefer allocator.destroy(expr_);
+
     expr_.* = expr;
 
-    errdefer deinitExpr(allocator, expr_);
-
-    return .{ .ok = .{
+    return .{
         .allocator = allocator,
         .func = func_,
         .expr = expr_,
-    } };
+    };
 }
 
 pub fn format(
