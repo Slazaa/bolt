@@ -24,19 +24,12 @@ allocator: mem.Allocator,
 func: *Expr,
 expr: *Expr,
 
-fn deinitFunc(allocator: mem.Allocator, func: *Expr) void {
-    func.deinit();
-    allocator.destroy(func);
-}
-
-fn deinitExpr(allocator: mem.Allocator, expr: *Expr) void {
-    expr.deinit();
-    allocator.destroy(expr);
-}
-
 pub fn deinit(self: Self) void {
-    deinitFunc(self.allocator, self.func);
-    deinitExpr(self.allocator, self.expr);
+    self.func.deinit();
+    self.allocator.destroy(self.func);
+
+    self.expr.deinit();
+    self.allocator.destroy(self.expr);
 }
 
 pub fn parse(
@@ -45,7 +38,7 @@ pub fn parse(
     expr: Expr,
 ) !Self {
     const func_ = try allocator.create(Expr);
-    errdefer allocator.destroy(func);
+    errdefer allocator.destroy(func_);
 
     func_.* = func;
 

@@ -40,14 +40,13 @@ pub fn deinit(self: Self) void {
 fn parseArg(
     allocator: mem.Allocator,
     input: *[]const Token,
-    err_info: ?*ErrorInfo,
 ) !?Expr {
     const parsers = .{
         Ident.parse,
     };
 
     inline for (parsers) |parser| {
-        if (parser(allocator, input, err_info)) |arg| {
+        if (parser(allocator, input, null)) |arg| {
             return Expr.from(arg);
         } else |_| {}
     }
@@ -102,7 +101,6 @@ pub fn parse(
     while (try parseArg(
         allocator,
         &input_,
-        err_info,
     )) |arg| {
         try args.append(arg);
     }

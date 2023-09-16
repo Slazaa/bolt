@@ -7,9 +7,8 @@ const eval_ = @import("../eval.zig");
 const expr = @import("../expr.zig");
 const expr_eval = @import("expr.zig");
 
+const ErrorInfo = eval_.ErrorInfo;
 const InvalidInputError = eval_.InvalidInputError;
-const Error = eval_.Error;
-const Result = eval_.Result;
 
 const Scope = eval_.Scope;
 
@@ -21,30 +20,33 @@ pub fn eval(
     allocator: mem.Allocator,
     scope: Scope,
     fn_call: AstFnCall,
-) !Result(Expr) {
+    err_info: ?*ErrorInfo,
+) !Expr {
     var func = switch (try expr_eval.eval(
         allocator,
         scope,
         fn_call.func.*,
+        err_info,
     )) {
-        .ok => |x| switch (x) {
-            .@"fn" => |y| y,
-            else => return .{ .err = Error.from(try InvalidInputError.init(
-                allocator,
-                "Expected FnDecl",
-            )) },
+        .@"fn" => |x| x,
+        else => {
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Expected FnDecl",
+                ));
+            }
+
+            return error.InvalidInput;
         },
-        .err => |e| return .{ .err = e },
     };
 
     func.replaceArg(fn_call.expr.*);
 
-    switch (try expr_eval.eval(
+    return try expr_eval.eval(
         allocator,
         scope,
         func.expr,
-    )) {
-        .ok => |x| return .{ .ok = x },
-        .err => |e| return .{ .err = e },
-    }
+        err_info,
+    );
 }

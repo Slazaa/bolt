@@ -8,19 +8,20 @@ const Writer = fs.File.Writer;
 const fmt = @import("fmt.zig");
 
 const ast = @import("ast.zig");
+const expr = @import("expr.zig");
 const lexer = @import("lexer.zig");
 
-const AstExpr = ast.expr.Expr;
+const AstErrorInfo = ast.ErrorInfo;
 
+const AstExpr = ast.expr.Expr;
 const AstBind = ast.expr.Bind;
 const AstFile = ast.expr.File;
 
 const eval_expr = @import("eval/expr.zig");
 
-const expr = @import("expr.zig");
-
 const Expr = expr.Expr;
 
+const LexerErrorInfo = lexer.ErrorInfo;
 const Token = lexer.Token;
 
 pub const InvalidInputError = struct {
@@ -30,11 +31,11 @@ pub const InvalidInputError = struct {
 
     pub fn init(allocator: mem.Allocator, message_slice: []const u8) !Self {
         var message = std.ArrayList(u8).init(allocator);
+        errdefer message.deinit();
+
         try message.appendSlice(message_slice);
 
-        return .{
-            .message = message,
-        };
+        return .{ .message = message };
     }
 
     pub fn deinit(self: Self) void {
@@ -48,19 +49,19 @@ pub const InvalidInputError = struct {
     }
 };
 
-pub const Error = union(enum) {
+pub const ErrorInfo = union(enum) {
     const Self = @This();
 
-    lexer_error: lexer.Error,
-    expr_error: ast.Error,
+    lexer_error: LexerErrorInfo,
+    expr_error: AstErrorInfo,
     invalid_input: InvalidInputError,
 
     pub fn from(item: anytype) Self {
         const T = @TypeOf(item);
 
         return switch (T) {
-            lexer.Error => .{ .lexer_error = item },
-            ast.Error => .{ .expr_error = item },
+            LexerErrorInfo => .{ .lexer_error = item },
+            AstErrorInfo => .{ .expr_error = item },
             InvalidInputError => .{ .invalid_input = item },
             else => @compileError("Expected error, found " ++ @typeName(T)),
         };
@@ -83,34 +84,47 @@ pub const Error = union(enum) {
 
 pub const Scope = std.StringArrayHashMap(AstExpr);
 
-pub fn Result(comptime T: type) type {
-    return union(enum) {
-        ok: T,
-        err: Error,
-    };
-}
-
 pub fn eval(
     builtins: std.StringArrayHashMap(AstExpr),
     allocator: mem.Allocator,
     file: AstFile,
     input: []const u8,
-) !Result(Expr) {
+    err_info: ?*ErrorInfo,
+) !Expr {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    if (try lexer.lex(input, &tokens)) |err| {
-        return .{ .err = Error.from(err) };
+    {
+        var err_info_: LexerErrorInfo = undefined;
+
+        lexer.lex(
+            input,
+            &tokens,
+            &err_info_,
+        ) catch |err| {
+            if (err_info) |info| info.* = ErrorInfo.from(err_info_);
+            return err;
+        };
     }
 
     var tokens_ = tokens.items;
 
-    var expr_ = switch (try AstExpr.parse(
-        allocator,
-        &tokens_,
-    )) {
-        .ok => |x| x,
-        .err => |e| return .{ .err = Error.from(e) },
+    var expr_ = b: {
+        var err_info_: AstErrorInfo = undefined;
+
+        break :b AstExpr.parse(
+            allocator,
+            &tokens_,
+            &err_info_,
+        ) catch |err| {
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(err_info_);
+            } else {
+                err_info_.deinit();
+            }
+
+            return err;
+        };
     };
 
     defer expr_.deinit();
@@ -134,5 +148,6 @@ pub fn eval(
         allocator,
         scope,
         expr_,
+        err_info,
     );
 }

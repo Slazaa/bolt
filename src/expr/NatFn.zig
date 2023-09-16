@@ -12,13 +12,11 @@ const expr = @import("../expr.zig");
 
 const Expr = expr.Expr;
 
-const Result = eval.Result;
-
 const Scope = eval.Scope;
 
 const Self = @This();
 
-func: *const fn (Scope) anyerror!Result(Expr),
+func: *const fn (Scope) anyerror!Expr,
 
 pub fn format(
     self: Self,

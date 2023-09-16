@@ -19,6 +19,10 @@ pub const InvalidTokenError = struct {
 
     position: Position,
 
+    pub fn init(position: Position) Self {
+        return .{ .position = position };
+    }
+
     pub fn format(self: Self, writer: Writer) fmt.Error!void {
         try fmt.print(writer, "Invalid token at {}:{}\n", .{
             self.position.line,
@@ -33,6 +37,13 @@ pub const InvalidIndexingError = struct {
     expected: usize,
     found: usize,
 
+    pub fn init(expected: usize, found: usize) Self {
+        return .{
+            .expected = expected,
+            .found = found,
+        };
+    }
+
     pub fn format(self: Self, writer: Writer) fmt.Error!void {
         try fmt.print(
             writer,
@@ -45,11 +56,21 @@ pub const InvalidIndexingError = struct {
     }
 };
 
-pub const Error = union(enum) {
+pub const ErrorInfo = union(enum) {
     const Self = @This();
 
     invalid_token: InvalidTokenError,
     index_mismatch: InvalidIndexingError,
+
+    pub fn from(item: anytype) Self {
+        const T = @TypeOf(item);
+
+        return switch (T) {
+            InvalidTokenError => .{ .invalid_token = item },
+            InvalidIndexingError => .{ .index_mismatch = item },
+            else => @compileError("Expected ErrorInfo, found" ++ @typeName(T)),
+        };
+    }
 
     pub fn format(self: Self, writer: Writer) fmt.Error!void {
         switch (self) {
@@ -144,7 +165,11 @@ fn lexSkip(input: *[]const u8, position: *Position) void {
     }
 }
 
-pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) !?Error {
+pub fn lex(
+    input: []const u8,
+    tokens: *std.ArrayList(Token),
+    err_info: ?*ErrorInfo,
+) !void {
     var input_ = input;
     var position = Position.default();
 
@@ -163,18 +188,24 @@ pub fn lex(input: []const u8, tokens: *std.ArrayList(Token)) !?Error {
                 break Token.from(token);
             }
         } else {
-            return .{ .invalid_token = .{ .position = position } };
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(InvalidTokenError.init(position));
+            }
+
+            return error.InvalidToken;
         };
 
         try tokens.append(token);
     }
 
     if (position.index != input.len) {
-        return .{ .index_mismatch = .{
-            .expected = input.len,
-            .found = position.index,
-        } };
-    }
+        if (err_info) |info| {
+            info.* = ErrorInfo.from(InvalidIndexingError.init(
+                input.len,
+                position.index,
+            ));
+        }
 
-    return null;
+        return error.InvalidIndexing;
+    }
 }

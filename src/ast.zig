@@ -26,9 +26,7 @@ pub const InvalidInputError = struct {
 
         try message.appendSlice(message_slice);
 
-        return .{
-            .message = message,
-        };
+        return .{ .message = message };
     }
 
     pub fn deinit(self: Self) void {
@@ -59,7 +57,6 @@ pub const ErrorInfo = union(enum) {
     pub fn deinit(self: Self) void {
         switch (self) {
             .invalid_input => |x| x.deinit(),
-            else => {},
         }
     }
 

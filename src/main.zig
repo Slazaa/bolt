@@ -14,6 +14,9 @@ const lexer = @import("lexer.zig");
 const AstErrorInfo = ast.ErrorInfo;
 const AstExpr = ast.expr.Expr;
 
+const EvalErrorInfo = eval.ErrorInfo;
+
+const LexerErrorInfo = lexer.ErrorInfo;
 const Token = lexer.Token;
 
 pub fn main() !void {
@@ -41,9 +44,17 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     defer tokens.deinit();
 
-    if (try lexer.lex(input, &tokens)) |err| {
-        try err.format(stderr_writer);
-        return error.LexerError;
+    {
+        var err_info: LexerErrorInfo = undefined;
+
+        lexer.lex(
+            input,
+            &tokens,
+            &err_info,
+        ) catch |err| {
+            try err_info.format(stderr_writer);
+            return err;
+        };
     }
 
     for (tokens.items) |token| {
@@ -70,47 +81,48 @@ pub fn main() !void {
 
     try ast_.format(allocator, stdout_writer, 0);
 
-    try stdout_writer.writeAll("\n--- Eval ---\n");
+    // try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
-    defer builtins_.deinit();
+    // var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
+    // defer builtins_.deinit();
 
-    defer {
-        var builtins_iter = builtins_.iterator();
+    // defer {
+    //     var builtins_iter = builtins_.iterator();
 
-        while (builtins_iter.next()) |builtin_| {
-            builtin_.value_ptr.deinit();
-        }
-    }
+    //     while (builtins_iter.next()) |builtin_| {
+    //         builtin_.value_ptr.deinit();
+    //     }
+    // }
 
-    inline for (builtins.builtins) |builtin_| {
-        try builtins_.put(
-            builtin_[0],
-            try builtin.decl(allocator, builtin_[1]),
-        );
-    }
+    // inline for (builtins.builtins) |builtin_| {
+    //     try builtins_.put(
+    //         builtin_[0],
+    //         try builtin.decl(allocator, builtin_[1]),
+    //     );
+    // }
 
-    const eval_input = "sec 10 20";
+    // const eval_input = "sec 10 20";
 
-    const result = switch (try eval.eval(
-        builtins_,
-        allocator,
-        ast_,
-        eval_input,
-    )) {
-        .ok => |x| x,
-        .err => |e| {
-            try e.format(stderr_writer);
-            e.deinit();
+    // const result = b: {
+    //     var err_info: EvalErrorInfo = undefined;
+    //     defer err_info.deinit();
 
-            return;
-        },
-    };
+    //     break :b eval.eval(
+    //         builtins_,
+    //         allocator,
+    //         ast_,
+    //         eval_input,
+    //         &err_info,
+    //     ) catch |err| {
+    //         try err_info.format(stderr_writer);
+    //         return err;
+    //     };
+    // };
 
-    defer result.deinit();
+    // defer result.deinit();
 
-    try stdout_writer.print("Input: {s}\n", .{eval_input});
-    try stdout_writer.print("Result:\n", .{});
+    // try stdout_writer.print("Input: {s}\n", .{eval_input});
+    // try stdout_writer.print("Result:\n", .{});
 
-    try result.format(allocator, stdout_writer, 0);
+    // try result.format(allocator, stdout_writer, 0);
 }
