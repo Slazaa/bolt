@@ -32,3 +32,7 @@ And then evaluate `fac 5` like above:
 
 ## Documentation
 No documentation is available yet.
+
+## Support
+You can support me on Patreon
+patreon.com/Slazaa
