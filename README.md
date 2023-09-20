@@ -35,4 +35,4 @@ No documentation is available yet.
 
 ## Support
 You can support me on Patreon
-patreon.com/Slazaa
+https://www.patreon.com/Slazaa
