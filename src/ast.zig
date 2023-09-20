@@ -50,7 +50,7 @@ pub const ErrorInfo = union(enum) {
 
         return switch (T) {
             InvalidInputError => .{ .invalid_input = item },
-            else => @panic("Expected Expr, found " ++ @typeName(T)),
+            else => @panic("Expected ErrorInfo, found " ++ @typeName(T)),
         };
     }
 
@@ -74,22 +74,15 @@ pub fn parse(
 ) !File {
     var input_ = input;
 
-    const expr_ = b: {
-        var err_info_: ErrorInfo = undefined;
-
-        break :b File.parse(
-            allocator,
-            &input_,
-            if (err_info) |_| &err_info_ else null,
-        ) catch |err| {
-            if (err_info) |info| info.* = err_info_;
-            return err;
-        };
-    };
+    const file = try File.parse(
+        allocator,
+        &input_,
+        err_info,
+    );
 
     if (input_.len != 0) {
         return error.InputLeft;
     }
 
-    return expr_;
+    return file;
 }

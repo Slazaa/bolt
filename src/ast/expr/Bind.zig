@@ -37,23 +37,6 @@ pub fn deinit(self: Self) void {
     self.allocator.destroy(self.expr);
 }
 
-fn parseArg(
-    allocator: mem.Allocator,
-    input: *[]const Token,
-) !?Expr {
-    const parsers = .{
-        Ident.parse,
-    };
-
-    inline for (parsers) |parser| {
-        if (parser(allocator, input, null)) |arg| {
-            return Expr.from(arg);
-        } else |_| {}
-    }
-
-    return null;
-}
-
 pub fn parse(
     allocator: mem.Allocator,
     input: *[]const Token,
@@ -98,10 +81,17 @@ pub fn parse(
         args.deinit();
     }
 
-    while (try parseArg(
-        allocator,
-        &input_,
-    )) |arg| {
+    while (true) {
+        const parsers = .{
+            Ident.parse,
+        };
+
+        const arg = inline for (parsers) |parser| {
+            if (parser(allocator, input, null)) |arg| {
+                break Expr.from(arg);
+            } else |_| {}
+        } else break;
+
         try args.append(arg);
     }
 
@@ -137,19 +127,15 @@ pub fn parse(
     }
 
     const expr = try allocator.create(Expr);
+    errdefer allocator.destroy(expr);
 
-    expr.* = Expr.parse(
+    expr.* = try Expr.parse(
         allocator,
         &input_,
-        if (err_info) |info| info else null,
-    ) catch |err| {
-        return err;
-    };
+        err_info,
+    );
 
-    errdefer {
-        expr.deinit();
-        allocator.destroy(expr);
-    }
+    errdefer expr.deinit();
 
     if (input.len == 0) {
         if (err_info) |info| {

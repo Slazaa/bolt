@@ -34,7 +34,7 @@ pub fn eval(
     var message = std.ArrayList(u8).init(allocator);
     defer message.deinit();
 
-    try message.appendSlice("Unknown Ident: '");
+    try message.appendSlice("Unknown Ident '");
     try message.appendSlice(ident.value.value);
     try message.appendSlice("'");
 

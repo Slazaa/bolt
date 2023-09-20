@@ -21,8 +21,9 @@ const Token = lexer.Token;
 
 pub fn main() !void {
     const input =
-        \\fst = x y -> x;
-        \\sec = x y -> y;
+        \\# fst = x y -> x;
+        \\# sec = x y -> y;
+        \\x = 10;
     ;
 
     const stdout = io.getStdOut();
@@ -51,9 +52,9 @@ pub fn main() !void {
             input,
             &tokens,
             &err_info,
-        ) catch |err| {
+        ) catch {
             try err_info.format(stderr_writer);
-            return err;
+            return;
         };
     }
 
@@ -65,15 +66,15 @@ pub fn main() !void {
 
     var ast_ = b: {
         var err_info: AstErrorInfo = undefined;
-        defer err_info.deinit();
 
         break :b ast.parse(
             allocator,
             tokens.items,
             &err_info,
-        ) catch |err| {
+        ) catch {
+            defer err_info.deinit();
             try err_info.format(stderr_writer);
-            return err;
+            return;
         };
     };
 
@@ -81,48 +82,48 @@ pub fn main() !void {
 
     try ast_.format(allocator, stdout_writer, 0);
 
-    // try stdout_writer.writeAll("\n--- Eval ---\n");
+    try stdout_writer.writeAll("\n--- Eval ---\n");
 
-    // var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
-    // defer builtins_.deinit();
+    var builtins_ = std.StringArrayHashMap(AstExpr).init(allocator);
+    defer builtins_.deinit();
 
-    // defer {
-    //     var builtins_iter = builtins_.iterator();
+    defer {
+        var builtins_iter = builtins_.iterator();
 
-    //     while (builtins_iter.next()) |builtin_| {
-    //         builtin_.value_ptr.deinit();
-    //     }
-    // }
+        while (builtins_iter.next()) |builtin_| {
+            builtin_.value_ptr.deinit();
+        }
+    }
 
-    // inline for (builtins.builtins) |builtin_| {
-    //     try builtins_.put(
-    //         builtin_[0],
-    //         try builtin.decl(allocator, builtin_[1]),
-    //     );
-    // }
+    inline for (builtins.builtins) |builtin_| {
+        try builtins_.put(
+            builtin_[0],
+            try builtin.decl(allocator, builtin_[1]),
+        );
+    }
 
-    // const eval_input = "sec 10 20";
+    const eval_input = "sec 10 20";
 
-    // const result = b: {
-    //     var err_info: EvalErrorInfo = undefined;
-    //     defer err_info.deinit();
+    const result = b: {
+        var err_info: EvalErrorInfo = undefined;
+        defer err_info.deinit();
 
-    //     break :b eval.eval(
-    //         builtins_,
-    //         allocator,
-    //         ast_,
-    //         eval_input,
-    //         &err_info,
-    //     ) catch |err| {
-    //         try err_info.format(stderr_writer);
-    //         return err;
-    //     };
-    // };
+        break :b eval.eval(
+            builtins_,
+            allocator,
+            ast_,
+            eval_input,
+            &err_info,
+        ) catch {
+            try err_info.format(stderr_writer);
+            return;
+        };
+    };
 
-    // defer result.deinit();
+    defer result.deinit();
 
-    // try stdout_writer.print("Input: {s}\n", .{eval_input});
-    // try stdout_writer.print("Result:\n", .{});
+    try stdout_writer.print("Input: {s}\n", .{eval_input});
+    try stdout_writer.print("Result:\n", .{});
 
-    // try result.format(allocator, stdout_writer, 0);
+    try result.format(allocator, stdout_writer, 0);
 }

@@ -118,7 +118,18 @@ pub const Expr = union(enum) {
             try exprs.append(expr);
         }
 
-        while (exprs.items.len != 1) {
+        if (exprs.items.len == 0) {
+            if (err_info) |info| {
+                info.* = ErrorInfo.from(try InvalidInputError.init(
+                    allocator,
+                    "Could not make Expr",
+                ));
+            }
+
+            return error.InvalidInput;
+        }
+
+        while (exprs.items.len > 1) {
             const func = exprs.items[0];
             const expr = exprs.orderedRemove(1);
 

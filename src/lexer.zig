@@ -120,7 +120,7 @@ fn skipComment(input: *[]const u8, position: *Position) void {
         input.* = input.*[1..];
         position.index += 1;
 
-        if (input.*[0] == '\n') {
+        if (input.len == 0 or input.*[0] == '\n') {
             position.column = 1;
             position.line += 1;
 
@@ -132,7 +132,8 @@ fn skipComment(input: *[]const u8, position: *Position) void {
 fn skipWhitespaces(input: *[]const u8, position: *Position) void {
     const whitespaces = " \n\r";
 
-    while (mem.containsAtLeast(
+    while (input.len != 0 and
+        mem.containsAtLeast(
         u8,
         whitespaces,
         1,

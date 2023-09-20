@@ -43,7 +43,7 @@ pub const InvalidInputError = struct {
     }
 
     pub fn format(self: Self, writer: Writer) fmt.Error!void {
-        try fmt.print(writer, "Invalid input: {s}\n", .{
+        try fmt.print(writer, "{s}\n", .{
             self.message.items,
         });
     }
@@ -117,12 +117,7 @@ pub fn eval(
             &tokens_,
             &err_info_,
         ) catch |err| {
-            if (err_info) |info| {
-                info.* = ErrorInfo.from(err_info_);
-            } else {
-                err_info_.deinit();
-            }
-
+            if (err_info) |info| info.* = ErrorInfo.from(err_info_);
             return err;
         };
     };
