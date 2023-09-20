@@ -12,8 +12,6 @@ const expr = @import("../../expr.zig");
 
 const Expr = expr.Expr;
 
-const Result = eval.Result;
-
 const Scope = eval.Scope;
 
 const Self = @This();
@@ -33,13 +31,7 @@ pub fn format(
 
     try fmt.addDepth(&depth_tabs, depth);
 
-    try fmt.print(writer, "{s}Native {{\n", .{
+    try fmt.print(writer, "{s}NatFn\n", .{
         depth_tabs.items,
     });
-
-    try fmt.print(writer, "{s}    func: [fn]\n", .{
-        depth_tabs.items,
-    });
-
-    try fmt.print(writer, "{s}}}\n", .{depth_tabs.items});
 }

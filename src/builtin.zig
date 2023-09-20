@@ -19,22 +19,13 @@ pub fn decl(allocator: mem.Allocator, func: anytype) !AstExpr {
             var last_expr = AstExpr.from(AstNatFn{ .func = func });
             errdefer last_expr.deinit();
 
-            inline for (X.params, 0..) |param, idx| {
-                _ = param;
-
+            inline for (X.params, 0..) |_, idx| {
                 var expr = try allocator.create(AstExpr);
                 errdefer allocator.destroy(expr);
 
                 expr.* = last_expr;
 
-                var idxBytes: [3]u8 = undefined;
-                _ = fmt.formatIntBuf(
-                    idxBytes[0..],
-                    idx,
-                    10,
-                    .lower,
-                    .{},
-                );
+                const idxBytes = fmt.comptimePrint("{}", .{idx});
 
                 last_expr = AstExpr.from(AstFnDecl{
                     .allocator = allocator,

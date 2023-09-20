@@ -1,8 +1,11 @@
 const std = @import("std");
 
 const debug = std.debug;
+const fs = std.fs;
 const heap = std.heap;
 const io = std.io;
+const math = std.math;
+const process = std.process;
 
 const ast = @import("ast.zig");
 const builtin = @import("builtin.zig");
@@ -20,11 +23,26 @@ const LexerErrorInfo = lexer.ErrorInfo;
 const Token = lexer.Token;
 
 pub fn main() !void {
-    const input =
-        \\# fst = x y -> x;
-        \\# sec = x y -> y;
-        \\x = 10;
-    ;
+    var gpa = heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+    var args = try process.argsWithAllocator(allocator);
+    defer args.deinit();
+
+    var input = std.ArrayList(u8).init(allocator);
+    defer input.deinit();
+
+    {
+        const file = try fs.cwd().openFile("test.bolt", .{});
+        defer file.close();
+
+        try file.reader().readAllArrayList(
+            &input,
+            math.maxInt(usize),
+        );
+    }
 
     const stdout = io.getStdOut();
     const stderr = io.getStdErr();
@@ -33,12 +51,7 @@ pub fn main() !void {
     const stderr_writer = stderr.writer();
 
     try stdout_writer.writeAll("--- Input ---\n");
-    try stdout_writer.print("{s}\n\n", .{input});
-
-    var gpa = heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
+    try stdout_writer.print("{s}\n\n", .{input.items});
 
     try stdout_writer.writeAll("--- Tokens ---\n");
 
@@ -49,12 +62,12 @@ pub fn main() !void {
         var err_info: LexerErrorInfo = undefined;
 
         lexer.lex(
-            input,
+            input.items,
             &tokens,
             &err_info,
-        ) catch {
+        ) catch |err| {
             try err_info.format(stderr_writer);
-            return;
+            return err;
         };
     }
 
@@ -71,10 +84,10 @@ pub fn main() !void {
             allocator,
             tokens.items,
             &err_info,
-        ) catch {
+        ) catch |err| {
             defer err_info.deinit();
             try err_info.format(stderr_writer);
-            return;
+            return err;
         };
     };
 
@@ -102,7 +115,7 @@ pub fn main() !void {
         );
     }
 
-    const eval_input = "sec 10 20";
+    const eval_input = "sec 10 x";
 
     const result = b: {
         var err_info: EvalErrorInfo = undefined;
@@ -114,9 +127,9 @@ pub fn main() !void {
             ast_,
             eval_input,
             &err_info,
-        ) catch {
+        ) catch |err| {
             try err_info.format(stderr_writer);
-            return;
+            return err;
         };
     };
 
