@@ -5,6 +5,7 @@ const fs = std.fs;
 const heap = std.heap;
 const io = std.io;
 const math = std.math;
+const mem = std.mem;
 const process = std.process;
 
 const ast = @import("ast.zig");
@@ -22,36 +23,32 @@ const EvalErrorInfo = eval.ErrorInfo;
 const LexerErrorInfo = lexer.ErrorInfo;
 const Token = lexer.Token;
 
-pub fn main() !void {
-    var gpa = heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-
-    var args = try process.argsWithAllocator(allocator);
-    defer args.deinit();
-
-    var input = std.ArrayList(u8).init(allocator);
-    defer input.deinit();
-
-    {
-        const file = try fs.cwd().openFile("test.bolt", .{});
-        defer file.close();
-
-        try file.reader().readAllArrayList(
-            &input,
-            math.maxInt(usize),
-        );
-    }
-
+fn eval_(
+    allocator: mem.Allocator,
+    source_file: []const u8,
+    input: []const u8,
+) !void {
     const stdout = io.getStdOut();
     const stderr = io.getStdErr();
 
     const stdout_writer = stdout.writer();
     const stderr_writer = stderr.writer();
 
-    try stdout_writer.writeAll("--- Input ---\n");
-    try stdout_writer.print("{s}\n\n", .{input.items});
+    var source = std.ArrayList(u8).init(allocator);
+    defer source.deinit();
+
+    {
+        const file = try fs.cwd().openFile(source_file, .{});
+        defer file.close();
+
+        try file.reader().readAllArrayList(
+            &source,
+            math.maxInt(usize),
+        );
+    }
+
+    try stdout_writer.writeAll("--- Source ---\n");
+    try stdout_writer.print("{s}\n\n", .{source.items});
 
     try stdout_writer.writeAll("--- Tokens ---\n");
 
@@ -62,7 +59,7 @@ pub fn main() !void {
         var err_info: LexerErrorInfo = undefined;
 
         lexer.lex(
-            input.items,
+            source.items,
             &tokens,
             &err_info,
         ) catch |err| {
@@ -125,7 +122,7 @@ pub fn main() !void {
             builtins_,
             allocator,
             ast_,
-            eval_input,
+            input,
             &err_info,
         ) catch |err| {
             try err_info.format(stderr_writer);
@@ -139,4 +136,57 @@ pub fn main() !void {
     try stdout_writer.print("Result:\n", .{});
 
     try result.format(allocator, stdout_writer, 0);
+}
+
+pub fn main() !void {
+    var gpa = heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+    const stderr = io.getStdErr();
+    const stderr_writer = stderr.writer();
+
+    var args = try process.argsWithAllocator(allocator);
+    defer args.deinit();
+
+    _ = args.skip();
+
+    const command = if (args.next()) |arg| arg else {
+        try stderr_writer.print(
+            "Expected command, found nothing\n",
+            .{},
+        );
+
+        return error.InvalidCommand;
+    };
+
+    if (mem.eql(u8, command, "eval")) {
+        const source_file = if (args.next()) |arg| arg else {
+            try stderr_writer.print(
+                "Expected source file, found nothing\n",
+                .{},
+            );
+
+            return error.InvalidArgument;
+        };
+
+        const input = if (args.next()) |arg| arg else {
+            try stderr_writer.print(
+                "Expected input, found nothing\n",
+                .{},
+            );
+
+            return error.InvalidArgument;
+        };
+
+        try eval_(allocator, source_file, input);
+    } else {
+        try stderr_writer.print(
+            "Invalid command '{s}'\n",
+            .{command},
+        );
+
+        return error.InvalidCommand;
+    }
 }
